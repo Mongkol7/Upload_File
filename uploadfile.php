@@ -1,12 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Image</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <?php include 'components/header.php'; ?>
 </head>
 <body data-theme="dark">
     <!-- to run: http://localhost/website/uploadfile.php -->
@@ -47,11 +42,40 @@
     </div>
 
     <?php
-        include 'config.php';
+        require_once __DIR__ . '/vendor/autoload.php';
         if (class_exists('Dotenv\\Dotenv')) {
             $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
             $dotenv->safeLoad();
         }
+        
+        use Cloudinary\Cloudinary;
+        
+        $getenvx = function(string $key, string $default = '') {
+            return $_ENV[$key] ?? $_SERVER[$key] ?? (getenv($key) !== false ? getenv($key) : $default);
+        };
+
+        $cloud_name = $getenvx('CLOUDINARY_CLOUD_NAME');
+        $api_key = $getenvx('CLOUDINARY_API_KEY');
+        $api_secret = $getenvx('CLOUDINARY_API_SECRET');
+
+        if (!$cloud_name || !$api_key || !$api_secret) {
+            echo 'Cloudinary credentials missing. Read values -> '
+                . 'CLOUDINARY_CLOUD_NAME=' . var_export($cloud_name, true) . ', '
+                . 'CLOUDINARY_API_KEY=' . var_export($api_key, true) . ', '
+                . 'CLOUDINARY_API_SECRET set? ' . var_export((bool)$api_secret, true);
+            exit;
+        }
+
+        $cloudinary = new Cloudinary([
+            'cloud' => [
+                'cloud_name' => $cloud_name,
+                'api_key' => $api_key,
+                'api_secret' => $api_secret,
+            ],
+            'url' => [
+                'secure' => true,
+            ],
+        ]);
         $cloud_url = null;
         $upload_status = null;
         
@@ -60,7 +84,7 @@
                 $file = $_FILES['fileToUpload'];
                 $tmp = $file['tmp_name'];
                 try {
-                    $folder = getenv('FOLDER_NAME') ?: 'Upload_ETEC_PHP';
+                    $folder = $getenvx('CLOUDINARY_FOLDER_NAME', 'Upload_ETEC_PHP');
                     $result = $cloudinary->uploadApi()->upload($tmp, [
                         'folder' => $folder,
                         // 'resource_type' => 'image', // optional; auto-detected
