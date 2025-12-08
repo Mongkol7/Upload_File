@@ -1,11 +1,12 @@
 ﻿{
   "functions": {
     "api/**/*.php": {
-      "runtime": "vercel-php@0.7.0"
+      "runtime": "vercel-php@0.8.1"
     }
   },
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1.php" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
+  "build": {
+    "env": {
+      "COMPOSER_VENDOR_DIR": "vendor"
+    }
+  }
 }
