@@ -1,11 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <?php include 'components/header.php'; ?>
+    <?php include 'components/header.php' ?>
 </head>
 <body data-theme="dark">
-    <!-- to run: http://localhost/website/uploadfile.php -->
+    <!-- to run: http://localhost/website/ -->
     <div class="min-h-screen bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 flex items-center justify-center p-4">
+        <!-- Animated background blobs -->
+        <div class="fixed inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute -top-40 -right-40 w-80 h-80 bg-green-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+            <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-green-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style="animation-delay: 2s;"></div>
+        </div>
         <div class="relative w-full max-w-md">
             <div class="backdrop-blur-2xl bg-gray-800/70 rounded-3xl p-8 border border-green-500/30 shadow-2xl shadow-green-500/20">
                 <div class="text-center mb-8">
@@ -18,7 +23,7 @@
                     <p class="text-gray-400 text-sm mt-2">Select an image to upload into Cloudinary</p>
                 </div>
 
-                <form action="uploadfile.php" method="post" enctype="multipart/form-data" class="space-y-4">
+                <form action="index.php" method="post" enctype="multipart/form-data" class="space-y-4">
                     <div class="p-8 rounded-2xl border-2 border-dashed border-green-500/50 bg-green-500/10 hover:bg-green-500/20 transition-all duration-300">
                         <label for="fileToUpload" class="flex flex-col items-center justify-center cursor-pointer">
                             <svg class="w-10 h-10 text-green-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -42,40 +47,7 @@
     </div>
 
     <?php
-        require_once __DIR__ . '/vendor/autoload.php';
-        if (class_exists('Dotenv\\Dotenv')) {
-            $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-            $dotenv->safeLoad();
-        }
-        
-        use Cloudinary\Cloudinary;
-        
-        $getenvx = function(string $key, string $default = '') {
-            return $_ENV[$key] ?? $_SERVER[$key] ?? (getenv($key) !== false ? getenv($key) : $default);
-        };
-
-        $cloud_name = $getenvx('CLOUDINARY_CLOUD_NAME');
-        $api_key = $getenvx('CLOUDINARY_API_KEY');
-        $api_secret = $getenvx('CLOUDINARY_API_SECRET');
-
-        if (!$cloud_name || !$api_key || !$api_secret) {
-            echo 'Cloudinary credentials missing. Read values -> '
-                . 'CLOUDINARY_CLOUD_NAME=' . var_export($cloud_name, true) . ', '
-                . 'CLOUDINARY_API_KEY=' . var_export($api_key, true) . ', '
-                . 'CLOUDINARY_API_SECRET set? ' . var_export((bool)$api_secret, true);
-            exit;
-        }
-
-        $cloudinary = new Cloudinary([
-            'cloud' => [
-                'cloud_name' => $cloud_name,
-                'api_key' => $api_key,
-                'api_secret' => $api_secret,
-            ],
-            'url' => [
-                'secure' => true,
-            ],
-        ]);
+        include 'config.php';
         $cloud_url = null;
         $upload_status = null;
         
@@ -84,9 +56,8 @@
                 $file = $_FILES['fileToUpload'];
                 $tmp = $file['tmp_name'];
                 try {
-                    $folder = $getenvx('CLOUDINARY_FOLDER_NAME', 'Upload_ETEC_PHP');
                     $result = $cloudinary->uploadApi()->upload($tmp, [
-                        'folder' => $folder,
+                        'folder' => $cloudinary_folder,
                         // 'resource_type' => 'image', // optional; auto-detected
                     ]);
                     if (isset($result['secure_url'])) {
