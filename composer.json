@@ -1,0 +1,14 @@
+{
+    "name": "myproject/website",
+    "description": "My PHP website",
+    "autoload": {
+        "psr-4": {
+            "Myproject\\Website\\Model\\": "Model/",
+            "Myproject\\Website\\Controller\\": "controller/"
+        }
+    },
+    "require": {
+        "cloudinary/cloudinary_php": "^3.1",
+        "vlucas/phpdotenv": "^5.6"
+    }
+}
