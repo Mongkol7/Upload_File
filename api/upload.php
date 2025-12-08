@@ -32,16 +32,16 @@ try {
 
     $cloudinary = new Cloudinary([
         'cloud' => [
-            'cloud_name' => getenv('API_CLOUD_NAME'),
-            'api_key' => getenv('API_KEY'),
-            'api_secret' => getenv('API_SECRET'),
+            'cloud_name' => getenv('CLOUDINARY_CLOUD_NAME'),
+            'api_key' => getenv('CLOUDINARY_API_KEY'),
+            'api_secret' => getenv('CLOUDINARY_API_SECRET'),
         ],
         'url' => [
             'secure' => true,
         ],
     ]);
 
-    $folder = getenv('FOLDER_NAME') ?: 'Upload_ETEC_PHP';
+    $folder = getenv('CLOUDINARY_FOLDER_NAME') ?: 'Upload_ETEC_PHP';
     $tmp = $_FILES['fileToUpload']['tmp_name'];
 
     $result = $cloudinary->uploadApi()->upload($tmp, [

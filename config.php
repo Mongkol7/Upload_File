@@ -1,14 +1,14 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/vendor/autoload.php';
 
 use Cloudinary\Cloudinary;
 
 $cloudinary = new Cloudinary([
     'cloud' => [
-        'cloud_name' => 'dnuqw4ctr',
-        'api_key' => '314143141236428',
-        'api_secret' => 'au4nElzt3DiUHs8L7u0TXl0CwIo',
-        'folder_name' => 'Upload_ETEC_PHP',
+        'cloud_name' => getenv('CLOUDINARY_CLOUD_NAME') ?: '',
+        'api_key' => getenv('CLOUDINARY_API_KEY') ?: '',
+        'api_secret' => getenv('CLOUDINARY_API_SECRET') ?: '',
+        'folder_name' => getenv('CLOUDINARY_FOLDER_NAME') ?: 'Upload_ETEC_PHP',
     ],
     'url' => [
         'secure' => true,
