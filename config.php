@@ -19,7 +19,7 @@ $cloudinary = new Cloudinary([
         'cloud_name' => getenv('CLOUDINARY_CLOUD_NAME') ?: '',
         'api_key' => getenv('CLOUDINARY_API_KEY') ?: '',
         'api_secret' => getenv('CLOUDINARY_API_SECRET') ?: '',
-        'folder_name' => getenv('CLOUDINARY_FOLDER_NAME') ?: 'Upload_ETEC_PHP',
+        'folder_name' => getenv('CLOUDINARY_FOLDER_NAME') ?: 'Upload_ETEC_PHP_',
     ],
     'url' => [
         'secure' => true,
@@ -27,4 +27,4 @@ $cloudinary = new Cloudinary([
 ]);
 
 // Define folder name from environment
-$cloudinary_folder = getenv('CLOUDINARY_FOLDER_NAME') ?: 'Upload_ETEC_PHP';
+$cloudinary_folder = getenv('CLOUDINARY_FOLDER_NAME') ?: 'Upload_ETEC_PHP_';
