@@ -1,10 +1,28 @@
+<?php
+    require_once __DIR__ . '/config.php';
+    require_once __DIR__ . '/src/UploadHandler.php';
+
+    $uploadHandler = new UploadHandler($cloudinary, $cloudinary_folder);
+    $uploadResult = $uploadHandler->handleUpload();
+    
+    // Get images from Cloudinary
+    $galleryResult = $uploadHandler->getImages(20);
+    
+    // Handle delete request
+    if (isset($_POST['delete_image']) && !empty($_POST['public_id'])) {
+        $deleteResult = $uploadHandler->deleteImage($_POST['public_id']);
+        if ($deleteResult['success']) {
+            // Refresh gallery after successful deletion
+            $galleryResult = $uploadHandler->getImages(20);
+        }
+    }
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <?php include 'components/header.php' ?>
 </head>
 <body data-theme="dark">
-    <!-- to run: http://localhost/website/ -->
     <div class="min-h-screen bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 flex items-center justify-center p-4">
         <!-- Animated background blobs -->
         <div class="fixed inset-0 overflow-hidden pointer-events-none">
@@ -15,7 +33,7 @@
             <div class="backdrop-blur-2xl bg-gray-800/70 rounded-3xl p-8 border border-green-500/30 shadow-2xl shadow-green-500/20">
                 <div class="text-center mb-8">
                     <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 mb-4 shadow-lg shadow-green-500/50">
-                        <svg class="upload-icon w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                         </svg>
                     </div>
@@ -26,7 +44,7 @@
                 <form action="index.php" method="post" enctype="multipart/form-data" class="space-y-4">
                     <div class="p-8 rounded-2xl border-2 border-dashed border-green-500/50 bg-green-500/10 hover:bg-green-500/20 transition-all duration-300">
                         <label for="fileToUpload" class="flex flex-col items-center justify-center cursor-pointer">
-                            <svg class="upload-icon w-10 h-10 text-green-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-10 h-10 text-green-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                             </svg>
                             <span class="text-gray-100 font-semibold">Choose Image</span>
@@ -36,7 +54,7 @@
                     </div>
 
                     <button type="submit" name="submit" class="btn w-full rounded-xl font-semibold bg-green-500 hover:bg-green-600 border-0 text-gray-900">
-                        <svg class="upload-icon w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                         </svg>
                         Upload Image
@@ -46,36 +64,140 @@
         </div>
     </div>
 
-    <?php
-        include 'config.php';
-        $cloud_url = null;
-        $upload_status = null;
-        
-        if (isset($_POST['submit'])) {
-            if (isset($_FILES['fileToUpload']) && is_array($_FILES['fileToUpload']) && $_FILES['fileToUpload']['error'] === 0) {
-                $file = $_FILES['fileToUpload'];
-                $tmp = $file['tmp_name'];
-                try {
-                    $result = $cloudinary->uploadApi()->upload($tmp, [
-                        'folder' => $_ENV['CLOUDINARY_FOLDER_NAME'] ?? 'Upload_ETEC_PHP_',
-                    ]);
-                    if (isset($result['secure_url'])) {
-                        $cloud_url = $result['secure_url'];
-                        $upload_status = 'success';
-                    } else {
-                        $upload_status = 'warning';
-                    }
-                } catch (Exception $e) {
-                    $upload_status = 'error';
-                }
-            } else {
-                $upload_status = 'error';
-            }
-        }
-    ?>
+    <!-- Image Gallery Section -->
+    <?php if ($galleryResult['success'] && !empty($galleryResult['images'])): ?>
+        <div class="container mx-auto px-4 py-8">
+            <div class="backdrop-blur-2xl bg-gray-800/70 rounded-3xl p-8 border border-green-500/30 shadow-2xl shadow-green-500/20">
+                <h2 class="text-2xl font-bold text-green-500 mb-6 text-center">Your Images Gallery</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <?php foreach ($galleryResult['images'] as $image): ?>
+                        <div class="relative group">
+                            <div class="backdrop-blur-lg bg-gray-900/80 rounded-2xl overflow-hidden border border-green-500/20 hover:border-green-500/40 transition-all duration-300">
+                                <img src="<?php echo htmlspecialchars($image['url']); ?>" 
+                                     alt="Uploaded Image" 
+                                     class="w-full h-48 object-cover">
+                                <div class="p-4">
+                                    <p class="text-xs text-gray-400 mb-2">
+                                        <?php 
+                                        $datetime = new DateTime($image['created_at']);
+                                        $datetime->setTimezone(new DateTimeZone('Asia/Phnom_Penh'));
+                                        echo $datetime->format('M d, Y - h:i A');
+                                        ?>
+                                    </p>
+                                    <div class="flex justify-between items-center">
+                                        <button onclick="copyToClipboard('<?php echo htmlspecialchars($image['url']); ?>')" 
+                                                class="text-green-500 hover:text-green-400 transition-colors">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                            </svg>
+                                        </button>
+                                        <form action="index.php" method="post" class="inline">
+                                            <input type="hidden" name="public_id" value="<?php echo htmlspecialchars($image['public_id']); ?>">
+                                            <button type="button" 
+                                                onclick="confirmDelete('<?php echo htmlspecialchars($image['public_id']); ?>')"
+                                                class="text-red-500 hover:text-red-400 transition-colors">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php if ($galleryResult['total_count'] > 0): ?>
+                    <p class="text-center text-gray-400 mt-6">
+                        Showing <?php echo $galleryResult['total_count']; ?> image(s)
+                    </p>
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <script>
-        <?php if ($upload_status === 'success'): ?>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Copied!',
+                    text: 'Image URL copied to clipboard',
+                    background: '#1f2937',
+                    color: '#f3f4f6',
+                    confirmButtonColor: '#22c55e',
+                    confirmButtonText: 'OK',
+                    timer: 2000,
+                    timerProgressBar: true
+                });
+            }, function(err) {
+                console.error('Could not copy text: ', err);
+            });
+        }
+
+        function confirmDelete(publicId) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, delete it!',
+                background: '#1f2937',
+                color: '#f3f4f6'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Create a form and submit it
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = 'index.php';
+                    
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'delete_image';
+                    input.value = '1';
+                    
+                    const publicIdInput = document.createElement('input');
+                    publicIdInput.type = 'hidden';
+                    publicIdInput.name = 'public_id';
+                    publicIdInput.value = publicId;
+                    
+                    form.appendChild(input);
+                    form.appendChild(publicIdInput);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
+
+        <?php if (isset($deleteResult)): ?>
+            <?php if ($deleteResult['success']): ?>
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Deleted!',
+                    text: '<?php echo htmlspecialchars($deleteResult['message']); ?>',
+                    background: '#1f2937',
+                    color: '#f3f4f6',
+                    confirmButtonColor: '#22c55e',
+                    confirmButtonText: 'OK',
+                    timer: 2000,
+                    timerProgressBar: true
+                });
+            <?php else: ?>
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Delete Failed!',
+                    text: '<?php echo htmlspecialchars($deleteResult['message']); ?>',
+                    background: '#1f2937',
+                    color: '#f3f4f6',
+                    confirmButtonColor: '#ef4444',
+                    confirmButtonText: 'OK'
+                });
+            <?php endif; ?>
+        <?php endif; ?>
+
+        <?php if ($uploadResult['message'] === 'success'): ?>
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
@@ -85,7 +207,7 @@
                 confirmButtonColor: '#22c55e',
                 confirmButtonText: 'Great!'
             });
-        <?php elseif ($upload_status === 'error'): ?>
+        <?php elseif ($uploadResult['message'] === 'error'): ?>
             Swal.fire({
                 icon: 'error',
                 title: 'Upload Failed!',
@@ -95,7 +217,7 @@
                 confirmButtonColor: '#ef4444',
                 confirmButtonText: 'OK'
             });
-        <?php elseif ($upload_status === 'warning'): ?>
+        <?php elseif ($uploadResult['message'] === 'warning'): ?>
             Swal.fire({
                 icon: 'warning',
                 title: 'Warning',
@@ -107,7 +229,7 @@
             });
         <?php endif; ?>
     </script>
-    <?php if ($cloud_url) { ?>
+    <?php if ($uploadResult['success'] && $uploadResult['url']) { ?>
         <div id="successCard" class="fixed bottom-6 right-6 max-w-xs backdrop-blur-2xl bg-gray-800/70 rounded-2xl p-4 border border-green-500/40 shadow-xl shadow-green-500/20">
             <button onclick="document.getElementById('successCard').style.display='none'" class="absolute top-2 right-2 p-2 hover:bg-gray-700/50 rounded-lg transition-all">
                 <svg class="w-5 h-5 text-gray-400 hover:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -120,7 +242,7 @@
                 </svg>
                 <p class="text-sm font-semibold text-green-500">Upload Success!</p>
             </div>
-            <img src="<?php echo htmlspecialchars($cloud_url); ?>" alt="Uploaded Image" class="w-full h-auto rounded-xl shadow-md border border-green-500/30">
+            <img src="<?php echo htmlspecialchars($uploadResult['url']); ?>" alt="Uploaded Image" class="w-full h-auto rounded-xl shadow-md border border-green-500/30">
         </div>
     <?php } ?>
 
