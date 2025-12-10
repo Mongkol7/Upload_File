@@ -5,15 +5,15 @@
     $uploadHandler = new UploadHandler($cloudinary, $cloudinary_folder);
     $uploadResult = $uploadHandler->handleUpload();
     
-    // Get images from Cloudinary
-    $galleryResult = $uploadHandler->getImages(20);
+    // Get files from Cloudinary (no limit)
+    $galleryResult = $uploadHandler->getImages();
     
     // Handle delete request
     if (isset($_POST['delete_image']) && !empty($_POST['public_id'])) {
         $deleteResult = $uploadHandler->deleteImage($_POST['public_id']);
         if ($deleteResult['success']) {
             // Refresh gallery after successful deletion
-            $galleryResult = $uploadHandler->getImages(20);
+            $galleryResult = $uploadHandler->getImages();
         }
     }
 ?>
@@ -47,54 +47,71 @@
                             <svg class="w-10 h-10 text-green-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                             </svg>
-                            <span class="text-gray-100 font-semibold">Choose Image</span>
-                            <span class="text-gray-400 text-xs mt-1">JPG, PNG, GIF, WebP</span>
+                            <span class="text-gray-100 font-semibold">Choose File</span>
+                            <span class="text-gray-400 text-xs mt-1">All file types supported</span>
                         </label>
-                        <input type="file" name="fileToUpload" id="fileToUpload" accept="image/*" class="hidden">
+                        <input type="file" name="fileToUpload" id="fileToUpload" class="hidden">
                     </div>
 
                     <button type="submit" name="submit" class="btn w-full rounded-xl font-semibold bg-green-500 hover:bg-green-600 border-0 text-gray-900">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                         </svg>
-                        Upload Image
+                        Upload File
                     </button>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Image Gallery Section -->
-    <?php if ($galleryResult['success'] && !empty($galleryResult['images'])): ?>
+    <!-- File Gallery Section -->
+    <?php if ($galleryResult['success'] && !empty($galleryResult['files'])): ?>
         <div class="container mx-auto px-4 py-8">
             <div class="backdrop-blur-2xl bg-gray-800/70 rounded-3xl p-8 border border-green-500/30 shadow-2xl shadow-green-500/20">
-                <h2 class="text-2xl font-bold text-green-500 mb-6 text-center">Your Images Gallery</h2>
+                <h2 class="text-2xl font-bold text-green-500 mb-6 text-center">Your Files Gallery</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    <?php foreach ($galleryResult['images'] as $image): ?>
+                    <?php foreach ($galleryResult['files'] as $file): ?>
                         <div class="relative group">
                             <div class="backdrop-blur-lg bg-gray-900/80 rounded-2xl overflow-hidden border border-green-500/20 hover:border-green-500/40 transition-all duration-300">
-                                <img src="<?php echo htmlspecialchars($image['url']); ?>" 
-                                     alt="Uploaded Image" 
-                                     class="w-full h-48 object-cover">
+                                <?php if ($file['resource_type'] === 'image'): ?>
+                                    <img src="<?php echo htmlspecialchars($file['url']); ?>" 
+                                         alt="Uploaded File" 
+                                         class="w-full h-48 object-cover">
+                                <?php elseif ($file['resource_type'] === 'video'): ?>
+                                    <video src="<?php echo htmlspecialchars($file['url']); ?>" 
+                                           class="w-full h-48 object-cover" 
+                                           controls 
+                                           poster="<?php echo htmlspecialchars($file['url']); ?>/video/w_400,h_300,f_auto,q_auto">
+                                    </video>
+                                <?php else: ?>
+                                    <div class="w-full h-48 flex items-center justify-center bg-gray-800">
+                                        <div class="text-center">
+                                            <svg class="w-16 h-16 text-green-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                            <p class="text-xs text-gray-400"><?php echo htmlspecialchars(strtoupper($file['format'])); ?></p>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
                                 <div class="p-4">
                                     <p class="text-xs text-gray-400 mb-2">
                                         <?php 
-                                        $datetime = new DateTime($image['created_at']);
+                                        $datetime = new DateTime($file['created_at']);
                                         $datetime->setTimezone(new DateTimeZone('Asia/Phnom_Penh'));
                                         echo $datetime->format('M d, Y - h:i A');
                                         ?>
                                     </p>
                                     <div class="flex justify-between items-center">
-                                        <button onclick="copyToClipboard('<?php echo htmlspecialchars($image['url']); ?>')" 
+                                        <button onclick="copyToClipboard('<?php echo htmlspecialchars($file['url']); ?>')" 
                                                 class="text-green-500 hover:text-green-400 transition-colors">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                                             </svg>
                                         </button>
                                         <form action="index.php" method="post" class="inline">
-                                            <input type="hidden" name="public_id" value="<?php echo htmlspecialchars($image['public_id']); ?>">
+                                            <input type="hidden" name="public_id" value="<?php echo htmlspecialchars($file['public_id']); ?>">
                                             <button type="button" 
-                                                onclick="confirmDelete('<?php echo htmlspecialchars($image['public_id']); ?>')"
+                                                onclick="confirmDelete('<?php echo htmlspecialchars($file['public_id']); ?>')"
                                                 class="text-red-500 hover:text-red-400 transition-colors">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -109,7 +126,7 @@
                 </div>
                 <?php if ($galleryResult['total_count'] > 0): ?>
                     <p class="text-center text-gray-400 mt-6">
-                        Showing <?php echo $galleryResult['total_count']; ?> image(s)
+                        Showing <?php echo $galleryResult['total_count']; ?> file(s)
                     </p>
                 <?php endif; ?>
             </div>
@@ -242,7 +259,20 @@
                 </svg>
                 <p class="text-sm font-semibold text-green-500">Upload Success!</p>
             </div>
-            <img src="<?php echo htmlspecialchars($uploadResult['url']); ?>" alt="Uploaded Image" class="w-full h-auto rounded-xl shadow-md border border-green-500/30">
+            <?php if ($uploadResult['resource_type'] === 'image'): ?>
+                <img src="<?php echo htmlspecialchars($uploadResult['url']); ?>" alt="Uploaded File" class="w-full h-auto rounded-xl shadow-md border border-green-500/30">
+            <?php elseif ($uploadResult['resource_type'] === 'video'): ?>
+                <video src="<?php echo htmlspecialchars($uploadResult['url']); ?>" class="w-full h-auto rounded-xl shadow-md border border-green-500/30" controls poster="<?php echo htmlspecialchars($uploadResult['url']); ?>/video/w_300,h_200,f_auto,q_auto"></video>
+            <?php else: ?>
+                <div class="w-full h-32 flex items-center justify-center bg-gray-800 rounded-xl border border-green-500/30">
+                    <div class="text-center">
+                        <svg class="w-12 h-12 text-green-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <p class="text-xs text-gray-400"><?php echo htmlspecialchars(strtoupper($uploadResult['format'])); ?></p>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
     <?php } ?>
 

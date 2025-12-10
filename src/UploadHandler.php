@@ -34,11 +34,14 @@ class UploadHandler
         try {
             $uploadResult = $this->cloudinary->uploadApi()->upload($tmp, [
                 'folder' => $this->cloudinary_folder,
+                'resource_type' => 'auto' // Auto-detect file type
             ]);
 
             if (isset($uploadResult['secure_url'])) {
                 $result['success'] = true;
                 $result['url'] = $uploadResult['secure_url'];
+                $result['resource_type'] = $uploadResult['resource_type'];
+                $result['format'] = $uploadResult['format'];
                 $result['message'] = 'success';
             } else {
                 $result['message'] = 'warning';
@@ -50,36 +53,44 @@ class UploadHandler
         return $result;
     }
 
-    public function getImages($limit = 20)
+    public function getImages()
     {
         try {
             $result = $this->cloudinary->adminApi()->assets([
                 'type' => 'upload',
                 'prefix' => $this->cloudinary_folder,
-                'max_results' => $limit,
-                'resource_type' => 'image'
+                'max_results' => 500 // Get maximum number of files
             ]);
 
-            $images = [];
+            $files = [];
             foreach ($result['resources'] as $resource) {
-                $images[] = [
+                $files[] = [
                     'url' => $resource['secure_url'],
                     'public_id' => $resource['public_id'],
                     'created_at' => $resource['created_at'],
                     'format' => $resource['format'],
-                    'size' => $resource['bytes']
+                    'size' => $resource['bytes'],
+                    'resource_type' => $resource['resource_type'],
+                    'type' => $resource['type']
                 ];
             }
 
+            // Sort files by creation date (newest first)
+            usort($files, function($a, $b) {
+                $dateA = new DateTime($a['created_at']);
+                $dateB = new DateTime($b['created_at']);
+                return $dateB <=> $dateA; // Newest to oldest
+            });
+
             return [
                 'success' => true,
-                'images' => $images,
-                'total_count' => count($images)
+                'files' => $files,
+                'total_count' => count($files)
             ];
         } catch (Exception $e) {
             return [
                 'success' => false,
-                'images' => [],
+                'files' => [],
                 'error' => $e->getMessage()
             ];
         }
