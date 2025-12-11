@@ -50,20 +50,46 @@
     <?php if ($galleryResult['success'] && !empty($galleryResult['files'])): ?>
         <div class="container mx-auto px-4 py-8">
             <div class="backdrop-blur-2xl bg-gray-800/70 rounded-3xl p-8 border border-green-500/30 shadow-2xl shadow-green-500/20">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-green-500 text-center">Your Files Gallery</h2>
-                    <button onclick="toggleGallery()" 
-                            id="galleryToggle"
-                            class="px-4 py-2 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 transition-all duration-300 flex items-center gap-2">
-                        <svg id="toggleIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                        </svg>
-                        <span id="toggleText">Show Gallery</span>
-                    </button>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <h2 class="text-2xl font-bold text-green-500 text-center sm:text-left">Your Files Gallery</h2>
+                    <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                        <!-- Search Box -->
+                        <div class="relative">
+                            <input type="text" 
+                                   id="searchInput" 
+                                   placeholder="Search files..." 
+                                   class="px-4 py-2 pl-10 rounded-lg bg-gray-700/50 text-gray-300 placeholder-gray-500 border border-green-500/20 focus:border-green-500/40 focus:outline-none transition-all duration-300 w-full sm:w-64">
+                            <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </div>
+                        
+                        <!-- Category Filter -->
+                        <select id="categoryFilter" class="px-4 py-2 rounded-lg bg-gray-700/50 text-gray-300 border border-green-500/20 focus:border-green-500/40 focus:outline-none transition-all duration-300">
+                            <option value="all">All Files</option>
+                            <option value="image">Images</option>
+                            <option value="video">Videos</option>
+                            <option value="other">Other Files</option>
+                        </select>
+                        
+                        <!-- Toggle Button -->
+                        <button onclick="toggleGallery()" 
+                                id="galleryToggle"
+                                class="px-4 py-2 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 transition-all duration-300 flex items-center gap-2">
+                            <svg id="toggleIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                            <span id="toggleText">Show Gallery</span>
+                        </button>
+                    </div>
                 </div>
                 <div id="galleryContent" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" style="display: none;">
                     <?php foreach ($galleryResult['files'] as $file): ?>
-                        <div class="relative group">
+                        <div class="relative group" 
+                     data-filename="<?php echo htmlspecialchars(strtolower($file['filename'])); ?>"
+                     data-category="<?php echo htmlspecialchars($file['resource_type'] === 'image' ? 'image' : ($file['resource_type'] === 'video' ? 'video' : 'other')); ?>"
+                     data-type="<?php echo htmlspecialchars($file['resource_type']); ?>"
+                     data-format="<?php echo htmlspecialchars($file['format']); ?>">
                             <div class="backdrop-blur-lg bg-gray-900/80 rounded-2xl overflow-hidden border border-green-500/20 hover:border-green-500/40 transition-all duration-300">
                                 <?php if ($file['resource_type'] === 'image'): ?>
                                     <img src="<?php echo htmlspecialchars($file['url']); ?>" 
@@ -218,6 +244,63 @@
                 toggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>';
             }
         }
+
+        // Search and Filter Functions
+        function filterGallery() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const category = document.getElementById('categoryFilter').value;
+            const fileItems = document.querySelectorAll('#galleryContent .relative.group');
+            
+            let visibleCount = 0;
+            
+            fileItems.forEach(item => {
+                const filename = item.dataset.filename;
+                const fileCategory = item.dataset.category;
+                
+                // Check if file matches search term and category
+                const matchesSearch = filename.includes(searchTerm);
+                const matchesCategory = category === 'all' || fileCategory === category;
+                
+                if (matchesSearch && matchesCategory) {
+                    item.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            // Update count display
+            updateFileCount(visibleCount);
+        }
+
+        function updateFileCount(count) {
+            const countElement = document.querySelector('.text-center.text-gray-400.mt-6');
+            if (countElement) {
+                if (count === 0) {
+                    countElement.textContent = 'No files found matching your filters';
+                } else {
+                    countElement.textContent = `Showing ${count} file${count !== 1 ? 's' : ''}`;
+                }
+            }
+        }
+
+        // Event listeners for search and filter
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            const categoryFilter = document.getElementById('categoryFilter');
+            
+            if (searchInput) {
+                searchInput.addEventListener('input', filterGallery);
+            }
+            
+            if (categoryFilter) {
+                categoryFilter.addEventListener('change', filterGallery);
+            }
+            
+            // Initialize file count
+            const totalFiles = document.querySelectorAll('#galleryContent .relative.group').length;
+            updateFileCount(totalFiles);
+        });
 
         <?php if (isset($deleteResult)): ?>
             <?php if ($deleteResult['success']): ?>
