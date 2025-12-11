@@ -56,27 +56,48 @@ class UploadHandler
     public function getImages()
     {
         try {
-            $result = $this->cloudinary->adminApi()->assets([
-                'type' => 'upload',
-                'prefix' => $this->cloudinary_folder,
-                'max_results' => 500 // Get maximum number of files
-            ]);
-
-            $files = [];
-            foreach ($result['resources'] as $resource) {
-                $files[] = [
-                    'url' => $resource['secure_url'],
-                    'public_id' => $resource['public_id'],
-                    'created_at' => $resource['created_at'],
-                    'format' => $resource['format'],
-                    'size' => $resource['bytes'],
-                    'resource_type' => $resource['resource_type'],
-                    'type' => $resource['type']
+            $allFiles = [];
+            $nextCursor = null;
+            
+            do {
+                $params = [
+                    'type' => 'upload',
+                    'prefix' => $this->cloudinary_folder,
+                    'max_results' => 500 // Maximum per request
                 ];
-            }
+                
+                if ($nextCursor) {
+                    $params['next_cursor'] = $nextCursor;
+                }
+                
+                $result = $this->cloudinary->adminApi()->assets($params);
+                
+                foreach ($result['resources'] as $resource) {
+                    // Extract file name from public_id (remove folder path)
+                    $fileName = basename($resource['public_id']);
+                    if (isset($resource['format'])) {
+                        $fileName .= '.' . $resource['format'];
+                    }
+                    
+                    $allFiles[] = [
+                        'url' => $resource['secure_url'],
+                        'public_id' => $resource['public_id'],
+                        'created_at' => $resource['created_at'],
+                        'format' => $resource['format'],
+                        'size' => $resource['bytes'],
+                        'resource_type' => $resource['resource_type'],
+                        'type' => $resource['type'],
+                        'filename' => $fileName
+                    ];
+                }
+                
+                // Check if there are more files to fetch
+                $nextCursor = isset($result['next_cursor']) ? $result['next_cursor'] : null;
+                
+            } while ($nextCursor); // Continue while there's a next cursor
 
             // Sort files by creation date (newest first)
-            usort($files, function($a, $b) {
+            usort($allFiles, function($a, $b) {
                 $dateA = new DateTime($a['created_at']);
                 $dateB = new DateTime($b['created_at']);
                 return $dateB <=> $dateA; // Newest to oldest
@@ -84,8 +105,8 @@ class UploadHandler
 
             return [
                 'success' => true,
-                'files' => $files,
-                'total_count' => count($files)
+                'files' => $allFiles,
+                'total_count' => count($allFiles)
             ];
         } catch (Exception $e) {
             return [

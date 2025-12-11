@@ -50,8 +50,18 @@
     <?php if ($galleryResult['success'] && !empty($galleryResult['files'])): ?>
         <div class="container mx-auto px-4 py-8">
             <div class="backdrop-blur-2xl bg-gray-800/70 rounded-3xl p-8 border border-green-500/30 shadow-2xl shadow-green-500/20">
-                <h2 class="text-2xl font-bold text-green-500 mb-6 text-center">Your Files Gallery</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-green-500 text-center">Your Files Gallery</h2>
+                    <button onclick="toggleGallery()" 
+                            id="galleryToggle"
+                            class="px-4 py-2 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 transition-all duration-300 flex items-center gap-2">
+                        <svg id="toggleIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                        <span id="toggleText">Show Gallery</span>
+                    </button>
+                </div>
+                <div id="galleryContent" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" style="display: none;">
                     <?php foreach ($galleryResult['files'] as $file): ?>
                         <div class="relative group">
                             <div class="backdrop-blur-lg bg-gray-900/80 rounded-2xl overflow-hidden border border-green-500/20 hover:border-green-500/40 transition-all duration-300">
@@ -76,6 +86,9 @@
                                     </div>
                                 <?php endif; ?>
                                 <div class="p-4">
+                                    <p class="text-sm text-gray-300 font-medium mb-1 truncate" title="<?php echo htmlspecialchars($file['filename']); ?>">
+                                        <?php echo htmlspecialchars($file['filename']); ?>
+                                    </p>
                                     <p class="text-xs text-gray-400 mb-2">
                                         <?php 
                                         $datetime = new DateTime($file['created_at']);
@@ -187,6 +200,24 @@
         console.log('JavaScript functions loaded successfully');
         console.log('copyToClipboard function:', typeof copyToClipboard);
         console.log('confirmDelete function:', typeof confirmDelete);
+
+        function toggleGallery() {
+            const galleryContent = document.getElementById('galleryContent');
+            const toggleIcon = document.getElementById('toggleIcon');
+            const toggleText = document.getElementById('toggleText');
+            
+            if (galleryContent.style.display === 'none') {
+                // Show gallery
+                galleryContent.style.display = 'grid';
+                toggleText.textContent = 'Hide Gallery';
+                toggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>';
+            } else {
+                // Hide gallery
+                galleryContent.style.display = 'none';
+                toggleText.textContent = 'Show Gallery';
+                toggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>';
+            }
+        }
 
         <?php if (isset($deleteResult)): ?>
             <?php if ($deleteResult['success']): ?>
