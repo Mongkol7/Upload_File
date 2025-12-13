@@ -28,7 +28,7 @@
                         <label for="fileToUpload" class="flex flex-col items-center justify-center cursor-pointer">
                             <svg class="w-10 h-10 text-green-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                            </svg>
+                        </svg>
                             <span class="text-gray-100 font-semibold">Choose File</span>
                             <span class="text-gray-400 text-xs mt-1">All file types supported</span>
                         </label>
@@ -64,18 +64,24 @@
                             </svg>
                         </div>
                         
-                        <!-- Category Filter -->
-                        <select id="categoryFilter" class="px-4 py-2 rounded-lg bg-gray-700/50 text-gray-300 border border-green-500/20 focus:border-green-500/40 focus:outline-none transition-all duration-300">
-                            <option value="all">All Files</option>
-                            <option value="image">Images</option>
-                            <option value="video">Videos</option>
-                            <option value="other">Other Files</option>
-                        </select>
+                        <!-- Modern Category Filter -->
+                        <div class="relative">
+                            <select id="categoryFilter" class="appearance-none w-full px-4 py-2 rounded-lg bg-gray-700/50 text-gray-300 border border-green-500/20 focus:border-green-500/40 focus:outline-none transition-all duration-300 pr-8">
+                                <option value="all">All Files</option>
+                                <option value="image">Images</option>
+                                <option value="video">Videos</option>
+                                <option value="pdf">PDFs</option>
+                                <option value="other">Other Files</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                            </div>
+                        </div>
                         
-                        <!-- Toggle Button -->
+                        <!-- Modern Toggle Button -->
                         <button onclick="toggleGallery()" 
                                 id="galleryToggle"
-                                class="px-4 py-2 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 transition-all duration-300 flex items-center gap-2">
+                                class="w-full sm:w-auto px-4 py-2 rounded-lg bg-gray-700/50 text-gray-300 border border-green-500/20 hover:border-green-500/40 focus:outline-none transition-all duration-300 flex items-center justify-center gap-2">
                             <svg id="toggleIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                             </svg>
@@ -83,24 +89,46 @@
                         </button>
                     </div>
                 </div>
+                <?php if ($galleryResult['total_count'] > 0): ?>
+                    <p id="gallery-file-count" class="text-center text-gray-400 mt-3 mb-8">
+                        Showing <?php echo $galleryResult['total_count']; ?> file(s)
+                    </p>
+                <?php endif; ?>
                 <div id="galleryContent" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" style="display: none;">
                     <?php foreach ($galleryResult['files'] as $file): ?>
                         <div class="relative group" 
-                     data-filename="<?php echo htmlspecialchars(strtolower($file['filename'])); ?>"
-                     data-category="<?php echo htmlspecialchars($file['resource_type'] === 'image' ? 'image' : ($file['resource_type'] === 'video' ? 'video' : 'other')); ?>"
-                     data-type="<?php echo htmlspecialchars($file['resource_type']); ?>"
-                     data-format="<?php echo htmlspecialchars($file['format']); ?>">
+                             data-filename="<?php echo htmlspecialchars(strtolower($file['filename'])); ?>"
+                             data-category="<?php
+                                $category = 'other'; // Default category
+                                if (isset($file['format']) && $file['format'] === 'pdf') {
+                                    $category = 'pdf';
+                                } elseif ($file['resource_type'] === 'image') {
+                                    $category = 'image';
+                                } elseif ($file['resource_type'] === 'video') {
+                                    $category = 'video';
+                                }
+                                echo htmlspecialchars($category);
+                             ?>"
+                             data-type="<?php echo htmlspecialchars($file['resource_type']); ?>"
+                             data-format="<?php echo htmlspecialchars($file['format']); ?>">
                             <div class="backdrop-blur-lg bg-gray-900/80 rounded-2xl overflow-hidden border border-green-500/20 hover:border-green-500/40 transition-all duration-300">
-                                <?php if ($file['resource_type'] === 'image'): ?>
+                                <?php if (isset($file['format']) && $file['format'] === 'pdf'): ?>
+                                    <div class="w-full h-48 flex items-center justify-center bg-gray-800">
+                                        <div class="text-center">
+                                            <svg class="w-16 h-16 text-red-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
+                                            <p class="text-xs text-gray-400">PDF</p>
+                                        </div>
+                                    </div>
+                                <?php elseif ($file['resource_type'] === 'image'): ?>
                                     <img src="<?php echo htmlspecialchars($file['url']); ?>" 
                                          alt="Uploaded File" 
                                          class="w-full h-48 object-cover">
                                 <?php elseif ($file['resource_type'] === 'video'): ?>
                                     <video src="<?php echo htmlspecialchars($file['url']); ?>" 
                                            class="w-full h-48 object-cover" 
-                                           controls 
-                                           poster="<?php echo htmlspecialchars($file['url']); ?>/video/w_400,h_300,f_auto,q_auto">
-                                    </video>
+                                           controls></video>
                                 <?php else: ?>
                                     <div class="w-full h-48 flex items-center justify-center bg-gray-800">
                                         <div class="text-center">
@@ -112,9 +140,28 @@
                                     </div>
                                 <?php endif; ?>
                                 <div class="p-4">
-                                    <p class="text-sm text-gray-300 font-medium mb-1 truncate" title="<?php echo htmlspecialchars($file['filename']); ?>">
-                                        <?php echo htmlspecialchars($file['filename']); ?>
-                                    </p>
+                                    <div id="filename-view-<?php echo htmlspecialchars($file['public_id']); ?>">
+                                        <div class="flex items-center justify-between">
+                                            <p class="gallery-item-filename text-sm text-gray-300 font-medium mb-1 truncate" title="<?php echo htmlspecialchars($file['filename']); ?>">
+                                                <?php echo htmlspecialchars($file['filename']); ?>
+                                            </p>
+                                            <button onclick="toggleEditMode('<?php echo htmlspecialchars($file['public_id']); ?>', true)" class="text-gray-400 hover:text-white">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z"></path></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="filename-edit-<?php echo htmlspecialchars($file['public_id']); ?>" style="display: none;">
+                                        <form action="index.php" method="post">
+                                            <input type="hidden" name="rename_file" value="1">
+                                            <input type="hidden" name="public_id" value="<?php echo htmlspecialchars($file['public_id']); ?>">
+                                            <input type="hidden" name="resource_type" value="<?php echo htmlspecialchars($file['resource_type']); ?>">
+                                            <input type="text" name="new_filename" value="<?php echo htmlspecialchars($file['filename']); ?>" class="w-full px-2 py-1 rounded bg-gray-700 text-white border border-green-500/50">
+                                            <div class="flex justify-end gap-2 mt-2">
+                                                <button type="button" onclick="toggleEditMode('<?php echo htmlspecialchars($file['public_id']); ?>', false)" class="text-xs text-gray-400 hover:text-white">Cancel</button>
+                                                <button type="submit" class="text-xs text-green-500 hover:text-green-400">Save</button>
+                                            </div>
+                                        </form>
+                                    </div>
                                     <p class="text-xs text-gray-400 mb-2">
                                         <?php 
                                         $datetime = new DateTime($file['created_at']);
@@ -132,7 +179,7 @@
                                         <form action="index.php" method="post" class="inline">
                                             <input type="hidden" name="public_id" value="<?php echo htmlspecialchars($file['public_id']); ?>">
                                             <button type="button" 
-                                                onclick="confirmDelete('<?php echo htmlspecialchars($file['public_id']); ?>')"
+                                                onclick="confirmDelete('<?php echo htmlspecialchars($file['public_id']); ?>', '<?php echo htmlspecialchars($file['resource_type']); ?>')"
                                                 class="text-red-500 hover:text-red-400 transition-colors">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -145,11 +192,7 @@
                         </div>
                     <?php endforeach; ?>
                 </div>
-                <?php if ($galleryResult['total_count'] > 0): ?>
-                    <p class="text-center text-gray-400 mt-6">
-                        Showing <?php echo $galleryResult['total_count']; ?> file(s)
-                    </p>
-                <?php endif; ?>
+                
             </div>
         </div>
     <?php endif; ?>
@@ -184,8 +227,8 @@
             });
         }
 
-        function confirmDelete(publicId) {
-            console.log('confirmDelete called with:', publicId);
+        function confirmDelete(publicId, resourceType) {
+            console.log('confirmDelete called with:', publicId, resourceType);
             Swal.fire({
                 title: 'Are you sure?',
                 text: "You won't be able to revert this!",
@@ -206,16 +249,22 @@
                     
                     const input = document.createElement('input');
                     input.type = 'hidden';
-                    input.name = 'delete_image';
+                    input.name = 'delete_file';
                     input.value = '1';
                     
                     const publicIdInput = document.createElement('input');
                     publicIdInput.type = 'hidden';
                     publicIdInput.name = 'public_id';
                     publicIdInput.value = publicId;
+
+                    const resourceTypeInput = document.createElement('input');
+                    resourceTypeInput.type = 'hidden';
+                    resourceTypeInput.name = 'resource_type';
+                    resourceTypeInput.value = resourceType;
                     
                     form.appendChild(input);
                     form.appendChild(publicIdInput);
+                    form.appendChild(resourceTypeInput);
                     document.body.appendChild(form);
                     form.submit();
                 }
@@ -227,27 +276,69 @@
         console.log('copyToClipboard function:', typeof copyToClipboard);
         console.log('confirmDelete function:', typeof confirmDelete);
 
-        function toggleGallery() {
+        // Make toggleGallery globally accessible
+        window.toggleGallery = function() {
+            console.log('toggleGallery function called');
             const galleryContent = document.getElementById('galleryContent');
             const toggleIcon = document.getElementById('toggleIcon');
             const toggleText = document.getElementById('toggleText');
+
+            if (!galleryContent) {
+                console.error('Error: galleryContent element not found');
+                return;
+            }
             
-            if (galleryContent.style.display === 'none') {
+            if (!toggleIcon || !toggleText) {
+                console.error('Error: toggle elements not found');
+                return;
+            }
+
+            console.log('Current display state:', galleryContent.style.display);
+
+            if (galleryContent.style.display === 'none' || galleryContent.style.display === '') {
                 // Show gallery
                 galleryContent.style.display = 'grid';
                 toggleText.textContent = 'Hide Gallery';
                 toggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>';
+                console.log('Gallery shown');
             } else {
                 // Hide gallery
                 galleryContent.style.display = 'none';
                 toggleText.textContent = 'Show Gallery';
                 toggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>';
+                console.log('Gallery hidden');
             }
-        }
+        };
+
+        // Make toggleEditMode globally accessible
+        window.toggleEditMode = function(publicId, showEdit) {
+            const filenameDisplay = document.getElementById('filename-view-' + publicId);
+            const filenameEdit = document.getElementById('filename-edit-' + publicId);
+            
+            if (!filenameDisplay || !filenameEdit) {
+                console.error('Error: Filename elements not found for', publicId);
+                console.log('Looking for: filename-view-' + publicId + ' and filename-edit-' + publicId);
+                return;
+            }
+            
+            if (showEdit) {
+                filenameDisplay.style.display = 'none';
+                filenameEdit.style.display = 'block';
+                // Focus on the input field
+                const inputField = filenameEdit.querySelector('input[type="text"]');
+                if (inputField) {
+                    inputField.focus();
+                    inputField.select();
+                }
+            } else {
+                filenameDisplay.style.display = 'block';
+                filenameEdit.style.display = 'none';
+            }
+        };
 
         // Search and Filter Functions
         function filterGallery() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const searchTerm = document.getElementById('searchInput').value;
             const category = document.getElementById('categoryFilter').value;
             const fileItems = document.querySelectorAll('#galleryContent .relative.group');
             
@@ -256,58 +347,110 @@
             fileItems.forEach(item => {
                 const filename = item.dataset.filename;
                 const fileCategory = item.dataset.category;
-                
-                // Check if file matches search term and category
-                const matchesSearch = filename.includes(searchTerm);
+                const filenameElement = item.querySelector('.gallery-item-filename');
+
+                const matchesSearch = searchTerm === '' || filename.toLowerCase().includes(searchTerm.toLowerCase());
                 const matchesCategory = category === 'all' || fileCategory === category;
                 
                 if (matchesSearch && matchesCategory) {
                     item.style.display = 'block';
                     visibleCount++;
+
+                    if (searchTerm !== '') {
+                        const regex = new RegExp(searchTerm, 'gi');
+                        const newHtml = filename.replace(regex, '<span class="bg-green-500 text-white">$&</span>');
+                        filenameElement.innerHTML = newHtml;
+                    } else {
+                        filenameElement.innerHTML = filename; // Reset when hidden
+                    }
                 } else {
                     item.style.display = 'none';
+                    filenameElement.innerHTML = filename; // Reset when hidden
                 }
             });
             
-            // Update count display
             updateFileCount(visibleCount);
         }
 
         function updateFileCount(count) {
-            const countElement = document.querySelector('.text-center.text-gray-400.mt-6');
+            const countElement = document.getElementById('gallery-file-count');
+            const totalFiles = <?php echo $galleryResult['total_count'] ?? 0; ?>;
             if (countElement) {
-                if (count === 0) {
+                if (totalFiles === 0) {
+                    countElement.textContent = 'No files found.';
+                } else if (count === 0) {
                     countElement.textContent = 'No files found matching your filters';
-                } else {
+                } else if (count === totalFiles) {
                     countElement.textContent = `Showing ${count} file${count !== 1 ? 's' : ''}`;
+                } else {
+                    countElement.textContent = `Showing ${count} of ${totalFiles} file(s)`;
                 }
             }
         }
 
         // Event listeners for search and filter
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded event fired.');
             const searchInput = document.getElementById('searchInput');
             const categoryFilter = document.getElementById('categoryFilter');
             
             if (searchInput) {
+                console.log('Adding event listener to search input.');
                 searchInput.addEventListener('input', filterGallery);
+            } else {
+                console.warn('Search input not found.');
             }
             
             if (categoryFilter) {
+                console.log('Adding event listener to category filter.');
                 categoryFilter.addEventListener('change', filterGallery);
+            } else {
+                console.warn('Category filter not found.');
             }
             
             // Initialize file count
+            console.log('Initializing file count');
             const totalFiles = document.querySelectorAll('#galleryContent .relative.group').length;
             updateFileCount(totalFiles);
+            console.log('File count initialized');
         });
+    </script>
 
-        <?php if (isset($deleteResult)): ?>
-            <?php if ($deleteResult['success']): ?>
+    <?php if (isset($renameResult)): ?>
+        <script>
+            <?php if ($renameResult['success']): ?>
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Renamed!',
+                    text: '<?php echo htmlspecialchars($renameResult['message']); ?>',
+                    background: '#1f2937',
+                    color: '#f3f4f6',
+                    confirmButtonColor: '#22c55e',
+                    confirmButtonText: 'OK',
+                    timer: 2000,
+                    timerProgressBar: true
+                });
+            <?php else: ?>
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Rename Failed!',
+                    text: '<?php echo htmlspecialchars($renameResult['message']); ?>',
+                    background: '#1f2937',
+                    color: '#f3f4f6',
+                    confirmButtonColor: '#ef4444',
+                    confirmButtonText: 'OK'
+                });
+            <?php endif; ?>
+        </script>
+    <?php endif; ?>
+
+    <?php if (isset($fileDeleteResult)): ?>
+        <script>
+            <?php if ($fileDeleteResult['success']): ?>
                 Swal.fire({
                     icon: 'success',
                     title: 'Deleted!',
-                    text: '<?php echo htmlspecialchars($deleteResult['message']); ?>',
+                    text: '<?php echo htmlspecialchars($fileDeleteResult['message']); ?>',
                     background: '#1f2937',
                     color: '#f3f4f6',
                     confirmButtonColor: '#22c55e',
@@ -319,16 +462,18 @@
                 Swal.fire({
                     icon: 'error',
                     title: 'Delete Failed!',
-                    text: '<?php echo htmlspecialchars($deleteResult['message']); ?>',
+                    text: '<?php echo htmlspecialchars($fileDeleteResult['message']); ?>',
                     background: '#1f2937',
                     color: '#f3f4f6',
                     confirmButtonColor: '#ef4444',
                     confirmButtonText: 'OK'
                 });
             <?php endif; ?>
-        <?php endif; ?>
+        </script>
+    <?php endif; ?>
 
-        <?php if ($uploadResult['message'] === 'success'): ?>
+    <?php if (isset($uploadResult['message']) && $uploadResult['message'] === 'success'): ?>
+        <script>
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
@@ -338,7 +483,9 @@
                 confirmButtonColor: '#22c55e',
                 confirmButtonText: 'Great!'
             });
-        <?php elseif ($uploadResult['message'] === 'error'): ?>
+        </script>
+    <?php elseif (isset($uploadResult['message']) && $uploadResult['message'] === 'error'): ?>
+        <script>
             Swal.fire({
                 icon: 'error',
                 title: 'Upload Failed!',
@@ -348,7 +495,9 @@
                 confirmButtonColor: '#ef4444',
                 confirmButtonText: 'OK'
             });
-        <?php elseif ($uploadResult['message'] === 'warning'): ?>
+        </script>
+    <?php elseif (isset($uploadResult['message']) && $uploadResult['message'] === 'warning'): ?>
+        <script>
             Swal.fire({
                 icon: 'warning',
                 title: 'Warning',
@@ -358,8 +507,8 @@
                 confirmButtonColor: '#f59e0b',
                 confirmButtonText: 'OK'
             });
-        <?php endif; ?>
-    </script>
+        </script>
+    <?php endif; ?>
     <?php if ($uploadResult['success'] && $uploadResult['url']) { ?>
         <div id="successCard" class="fixed bottom-6 right-6 max-w-xs backdrop-blur-2xl bg-gray-800/70 rounded-2xl p-4 border border-green-500/40 shadow-xl shadow-green-500/20">
             <button onclick="document.getElementById('successCard').style.display='none'" class="absolute top-2 right-2 p-2 hover:bg-gray-700/50 rounded-lg transition-all">
@@ -368,15 +517,29 @@
                 </svg>
             </button>
             <div class="flex items-center gap-3 mb-3">
-                <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
+                <?php if ($uploadResult['resource_type'] === 'image'): ?>
+                    <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                <?php elseif ($uploadResult['resource_type'] === 'video'): ?>
+                    <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                <?php elseif (isset($uploadResult['format']) && strtolower($uploadResult['format']) === 'pdf'): ?>
+                    <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-5L9 2H4z" clip-rule="evenodd"/>
+                    </svg>
+                <?php else: ?>
+                    <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                <?php endif; ?>
                 <p class="text-sm font-semibold text-green-500">Upload Success!</p>
             </div>
             <?php if ($uploadResult['resource_type'] === 'image'): ?>
                 <img src="<?php echo htmlspecialchars($uploadResult['url']); ?>" alt="Uploaded File" class="w-full h-auto rounded-xl shadow-md border border-green-500/30">
             <?php elseif ($uploadResult['resource_type'] === 'video'): ?>
-                <video src="<?php echo htmlspecialchars($uploadResult['url']); ?>" class="w-full h-auto rounded-xl shadow-md border border-green-500/30" controls poster="<?php echo htmlspecialchars($uploadResult['url']); ?>/video/w_300,h_200,f_auto,q_auto"></video>
+                <video src="<?php echo htmlspecialchars($uploadResult['url']); ?>" class="w-full h-auto rounded-xl shadow-md border border-green-500/30" controls></video>
             <?php else: ?>
                 <div class="w-full h-32 flex items-center justify-center bg-gray-800 rounded-xl border border-green-500/30">
                     <div class="text-center">
@@ -390,7 +553,7 @@
         </div>
     <?php } ?>
 
-</script>
+    </script>
 
 </body>
 </html>

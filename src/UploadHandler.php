@@ -30,11 +30,16 @@ class UploadHandler
 
         $file = $_FILES['fileToUpload'];
         $tmp = $file['tmp_name'];
+        $originalName = pathinfo($file['name'], PATHINFO_FILENAME);
 
         try {
             $uploadResult = $this->cloudinary->uploadApi()->upload($tmp, [
                 'folder' => $this->cloudinary_folder,
-                'resource_type' => 'auto' // Auto-detect file type
+                'resource_type' => 'auto', // Auto-detect file type
+                'public_id' => $originalName, // Use original filename
+                'use_filename' => true, // Use the original filename
+                'unique_filename' => false, // Don't add random suffix
+                'overwrite' => true // Allow overwriting existing files
             ]);
 
             if (isset($uploadResult['secure_url'])) {
@@ -53,51 +58,56 @@ class UploadHandler
         return $result;
     }
 
-    public function getImages()
+    public function getFiles()
     {
         try {
-            $allFiles = [];
-            $nextCursor = null;
-            
-            do {
-                $params = [
-                    'type' => 'upload',
-                    'prefix' => $this->cloudinary_folder,
-                    'max_results' => 500 // Maximum per request
-                ];
-                
-                if ($nextCursor) {
-                    $params['next_cursor'] = $nextCursor;
-                }
-                
-                $result = $this->cloudinary->adminApi()->assets($params);
-                
-                foreach ($result['resources'] as $resource) {
-                    // Extract file name from public_id (remove folder path)
-                    $fileName = basename($resource['public_id']);
-                    if (isset($resource['format'])) {
-                        $fileName .= '.' . $resource['format'];
+            $allResources = [];
+
+            // Resource types to fetch
+            $resourceTypes = ['image', 'video', 'raw'];
+
+            foreach ($resourceTypes as $resourceType) {
+                $nextCursor = null;
+                do {
+                    $params = [
+                        'type' => 'upload',
+                        'prefix' => $this->cloudinary_folder,
+                        'max_results' => 500,
+                        'resource_type' => $resourceType
+                    ];
+                    
+                    if ($nextCursor) {
+                        $params['next_cursor'] = $nextCursor;
                     }
                     
-                    $allFiles[] = [
-                        'url' => $resource['secure_url'],
-                        'public_id' => $resource['public_id'],
-                        'created_at' => $resource['created_at'],
-                        'format' => $resource['format'],
-                        'size' => $resource['bytes'],
-                        'resource_type' => $resource['resource_type'],
-                        'type' => $resource['type'],
-                        'filename' => $fileName
-                    ];
-                }
-                
-                // Check if there are more files to fetch
-                $nextCursor = isset($result['next_cursor']) ? $result['next_cursor'] : null;
-                
-            } while ($nextCursor); // Continue while there's a next cursor
+                    $result = $this->cloudinary->adminApi()->assets($params);
+                    
+                    foreach ($result['resources'] as $resource) {
+                        // Extract file name from public_id (remove folder path)
+                        $fileName = basename($resource['public_id']);
+                        if (isset($resource['format'])) {
+                            $fileName .= '.' . $resource['format'];
+                        }
+                        
+                        $allResources[] = [
+                            'url' => $resource['secure_url'],
+                            'public_id' => $resource['public_id'],
+                            'created_at' => $resource['created_at'],
+                            'format' => $resource['format'],
+                            'size' => $resource['bytes'],
+                            'resource_type' => $resource['resource_type'],
+                            'type' => $resource['type'],
+                            'filename' => $fileName
+                        ];
+                    }
+                    
+                    $nextCursor = isset($result['next_cursor']) ? $result['next_cursor'] : null;
+                    
+                } while ($nextCursor);
+            }
 
-            // Sort files by creation date (newest first)
-            usort($allFiles, function($a, $b) {
+            // Sort all fetched files by creation date (newest first)
+            usort($allResources, function($a, $b) {
                 $dateA = new DateTime($a['created_at']);
                 $dateB = new DateTime($b['created_at']);
                 return $dateB <=> $dateA; // Newest to oldest
@@ -105,8 +115,8 @@ class UploadHandler
 
             return [
                 'success' => true,
-                'files' => $allFiles,
-                'total_count' => count($allFiles)
+                'files' => $allResources,
+                'total_count' => count($allResources)
             ];
         } catch (Exception $e) {
             return [
@@ -117,18 +127,74 @@ class UploadHandler
         }
     }
 
-    public function deleteImage($publicId)
+    public function deleteFile($publicId, $resourceType = 'image')
     {
         try {
-            $result = $this->cloudinary->uploadApi()->destroy($publicId);
-            return [
-                'success' => $result['result'] === 'ok',
-                'message' => $result['result'] === 'ok' ? 'Image deleted successfully' : 'Failed to delete image'
-            ];
+            $options = ['resource_type' => $resourceType];
+            $result = $this->cloudinary->uploadApi()->destroy($publicId, $options);
+            
+            if ($result['result'] === 'ok') {
+                return [
+                    'success' => true,
+                    'message' => 'File deleted successfully.'
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to delete file.'
+                ];
+            }
         } catch (Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Error deleting image: ' . $e->getMessage()
+                'message' => 'Error deleting file: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    public function renameFile($publicId, $newFilename, $resourceType = 'image')
+    {
+        try {
+            // The new public_id should not contain the file extension
+            $newFilenameWithoutExt = pathinfo($newFilename, PATHINFO_FILENAME);
+
+            // Construct the new public_id, preserving the folder structure
+            $folderPath = dirname($publicId);
+            if ($folderPath === '.') {
+                $newPublicId = $newFilenameWithoutExt;
+            } else {
+                $newPublicId = $folderPath . '/' . $newFilenameWithoutExt;
+            }
+
+            // Debug logging
+            error_log("Rename attempt: '$publicId' -> '$newPublicId' (type: $resourceType)");
+
+            // Use the correct rename method with proper parameters
+            $result = $this->cloudinary->uploadApi()->rename($publicId, $newPublicId, [
+                'resource_type' => $resourceType,
+                'invalidate' => true
+            ]);
+            
+            // Debug logging
+            error_log("Rename result: " . print_r($result, true));
+
+            // Check if the rename was successful - Cloudinary returns the updated asset info
+            if (isset($result['public_id'])) {
+                return [
+                    'success' => true,
+                    'message' => 'File renamed successfully.'
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'Rename failed. The file may already exist or the name is invalid.'
+                ];
+            }
+        } catch (Exception $e) {
+            error_log("Rename exception: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Rename failed: ' . $e->getMessage()
             ];
         }
     }
