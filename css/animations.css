@@ -1,0 +1,57 @@
+/**
+ * Animation Styles
+ * Contains scroll-triggered animations and other UI animations
+ */
+
+/* Scroll-triggered animation styles */
+.gallery-item-scroll {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+    transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), 
+                transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gallery-item-scroll.animate-in {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+/* Staggered animation delays for smooth appearance */
+.gallery-item-scroll:nth-child(4n+1) {
+    transition-delay: 0s;
+}
+
+.gallery-item-scroll:nth-child(4n+2) {
+    transition-delay: 0.1s;
+}
+
+.gallery-item-scroll:nth-child(4n+3) {
+    transition-delay: 0.2s;
+}
+
+.gallery-item-scroll:nth-child(4n+4) {
+    transition-delay: 0.3s;
+}
+
+/* Skeleton loading animation */
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+.skeleton-shimmer {
+    background: linear-gradient(
+        90deg,
+        rgba(55, 65, 81, 0.5) 0%,
+        rgba(75, 85, 99, 0.7) 50%,
+        rgba(55, 65, 81, 0.5) 100%
+    );
+    background-size: 2000px 100%;
+    animation: shimmer 2s infinite;
+    border-radius: 0.5rem;
+}
+

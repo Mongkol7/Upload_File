@@ -2,8 +2,13 @@
 <html lang="en">
 <head>
     <?php include __DIR__ . '/../components/header.php' ?>
+    <!-- Custom CSS for animations -->
+    <link rel="stylesheet" href="css/animations.css">
 </head>
 <body data-theme="dark">
+    <!-- Loading Overlay Component -->
+    <?php include __DIR__ . '/../components/loading.php' ?>
+
     <div class="min-h-screen bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 flex items-center justify-center p-4">
         <!-- Animated background blobs -->
         <div class="fixed inset-0 overflow-hidden pointer-events-none">
@@ -23,7 +28,7 @@
                     <p class="text-gray-400 text-sm mt-2">Upload any file to Cloudinary</p>
                 </div>
 
-                <form action="index.php" method="post" enctype="multipart/form-data" class="space-y-4">
+                <form action="index.php" method="post" enctype="multipart/form-data" class="space-y-4" id="uploadForm" onsubmit="showLoading('Uploading file...')">
                     <div class="p-8 rounded-2xl border-2 border-dashed border-green-500/50 bg-green-500/10 hover:bg-green-500/20 transition-all duration-300">
                         <label for="fileToUpload" class="flex flex-col items-center justify-center cursor-pointer">
                             <svg class="w-10 h-10 text-green-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,9 +99,14 @@
                         Showing <?php echo $galleryResult['total_count']; ?> file(s)
                     </p>
                 <?php endif; ?>
+                
+                <!-- Gallery Skeleton Loading -->
+                <?php include __DIR__ . '/../components/gallery-skeleton.php' ?>
+                
+                <!-- Gallery Content -->
                 <div id="galleryContent" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" style="display: none;">
                     <?php foreach ($galleryResult['files'] as $file): ?>
-                        <div class="relative group" 
+                        <div class="relative group gallery-item-scroll" 
                              data-filename="<?php echo htmlspecialchars(strtolower($file['filename'])); ?>"
                              data-category="<?php
                                 $category = 'other'; // Default category
@@ -151,7 +161,7 @@
                                         </div>
                                     </div>
                                     <div id="filename-edit-<?php echo htmlspecialchars($file['public_id']); ?>" style="display: none;">
-                                        <form action="index.php" method="post">
+                                        <form action="index.php" method="post" onsubmit="showLoading('Renaming file...')">
                                             <input type="hidden" name="rename_file" value="1">
                                             <input type="hidden" name="public_id" value="<?php echo htmlspecialchars($file['public_id']); ?>">
                                             <input type="hidden" name="resource_type" value="<?php echo htmlspecialchars($file['resource_type']); ?>">
@@ -197,224 +207,14 @@
         </div>
     <?php endif; ?>
 
+    <!-- Pass PHP variables to JavaScript -->
     <script>
-        function copyToClipboard(text) {
-            console.log('copyToClipboard called with:', text);
-            navigator.clipboard.writeText(text).then(function() {
-                console.log('Copy successful');
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Copied!',
-                    text: 'File URL copied to clipboard',
-                    background: '#1f2937',
-                    color: '#f3f4f6',
-                    confirmButtonColor: '#22c55e',
-                    confirmButtonText: 'OK',
-                    timer: 2000,
-                    timerProgressBar: true
-                });
-            }, function(err) {
-                console.error('Could not copy text: ', err);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Copy Failed!',
-                    text: 'Could not copy URL to clipboard',
-                    background: '#1f2937',
-                    color: '#f3f4f6',
-                    confirmButtonColor: '#ef4444',
-                    confirmButtonText: 'OK'
-                });
-            });
-        }
-
-        function confirmDelete(publicId, resourceType) {
-            console.log('confirmDelete called with:', publicId, resourceType);
-            Swal.fire({
-                title: 'Are you sure?',
-                text: "You won't be able to revert this!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Yes, delete it!',
-                background: '#1f2937',
-                color: '#f3f4f6'
-            }).then((result) => {
-                console.log('SweetAlert result:', result);
-                if (result.isConfirmed) {
-                    console.log('Submitting delete form for:', publicId);
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = 'index.php';
-                    
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'delete_file';
-                    input.value = '1';
-                    
-                    const publicIdInput = document.createElement('input');
-                    publicIdInput.type = 'hidden';
-                    publicIdInput.name = 'public_id';
-                    publicIdInput.value = publicId;
-
-                    const resourceTypeInput = document.createElement('input');
-                    resourceTypeInput.type = 'hidden';
-                    resourceTypeInput.name = 'resource_type';
-                    resourceTypeInput.value = resourceType;
-                    
-                    form.appendChild(input);
-                    form.appendChild(publicIdInput);
-                    form.appendChild(resourceTypeInput);
-                    document.body.appendChild(form);
-                    form.submit();
-                }
-            });
-        }
-
-        // Test if functions are loaded
-        console.log('JavaScript functions loaded successfully');
-        console.log('copyToClipboard function:', typeof copyToClipboard);
-        console.log('confirmDelete function:', typeof confirmDelete);
-
-        // Make toggleGallery globally accessible
-        window.toggleGallery = function() {
-            console.log('toggleGallery function called');
-            const galleryContent = document.getElementById('galleryContent');
-            const toggleIcon = document.getElementById('toggleIcon');
-            const toggleText = document.getElementById('toggleText');
-
-            if (!galleryContent) {
-                console.error('Error: galleryContent element not found');
-                return;
-            }
-            
-            if (!toggleIcon || !toggleText) {
-                console.error('Error: toggle elements not found');
-                return;
-            }
-
-            console.log('Current display state:', galleryContent.style.display);
-
-            if (galleryContent.style.display === 'none' || galleryContent.style.display === '') {
-                // Show gallery
-                galleryContent.style.display = 'grid';
-                toggleText.textContent = 'Hide Gallery';
-                toggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>';
-                console.log('Gallery shown');
-            } else {
-                // Hide gallery
-                galleryContent.style.display = 'none';
-                toggleText.textContent = 'Show Gallery';
-                toggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>';
-                console.log('Gallery hidden');
-            }
-        };
-
-        // Make toggleEditMode globally accessible
-        window.toggleEditMode = function(publicId, showEdit) {
-            const filenameDisplay = document.getElementById('filename-view-' + publicId);
-            const filenameEdit = document.getElementById('filename-edit-' + publicId);
-            
-            if (!filenameDisplay || !filenameEdit) {
-                console.error('Error: Filename elements not found for', publicId);
-                console.log('Looking for: filename-view-' + publicId + ' and filename-edit-' + publicId);
-                return;
-            }
-            
-            if (showEdit) {
-                filenameDisplay.style.display = 'none';
-                filenameEdit.style.display = 'block';
-                // Focus on the input field
-                const inputField = filenameEdit.querySelector('input[type="text"]');
-                if (inputField) {
-                    inputField.focus();
-                    inputField.select();
-                }
-            } else {
-                filenameDisplay.style.display = 'block';
-                filenameEdit.style.display = 'none';
-            }
-        };
-
-        // Search and Filter Functions
-        function filterGallery() {
-            const searchTerm = document.getElementById('searchInput').value;
-            const category = document.getElementById('categoryFilter').value;
-            const fileItems = document.querySelectorAll('#galleryContent .relative.group');
-            
-            let visibleCount = 0;
-            
-            fileItems.forEach(item => {
-                const filename = item.dataset.filename;
-                const fileCategory = item.dataset.category;
-                const filenameElement = item.querySelector('.gallery-item-filename');
-
-                const matchesSearch = searchTerm === '' || filename.toLowerCase().includes(searchTerm.toLowerCase());
-                const matchesCategory = category === 'all' || fileCategory === category;
-                
-                if (matchesSearch && matchesCategory) {
-                    item.style.display = 'block';
-                    visibleCount++;
-
-                    if (searchTerm !== '') {
-                        const regex = new RegExp(searchTerm, 'gi');
-                        const newHtml = filename.replace(regex, '<span class="bg-green-500 text-white">$&</span>');
-                        filenameElement.innerHTML = newHtml;
-                    } else {
-                        filenameElement.innerHTML = filename; // Reset when hidden
-                    }
-                } else {
-                    item.style.display = 'none';
-                    filenameElement.innerHTML = filename; // Reset when hidden
-                }
-            });
-            
-            updateFileCount(visibleCount);
-        }
-
-        function updateFileCount(count) {
-            const countElement = document.getElementById('gallery-file-count');
-            const totalFiles = <?php echo $galleryResult['total_count'] ?? 0; ?>;
-            if (countElement) {
-                if (totalFiles === 0) {
-                    countElement.textContent = 'No files found.';
-                } else if (count === 0) {
-                    countElement.textContent = 'No files found matching your filters';
-                } else if (count === totalFiles) {
-                    countElement.textContent = `Showing ${count} file${count !== 1 ? 's' : ''}`;
-                } else {
-                    countElement.textContent = `Showing ${count} of ${totalFiles} file(s)`;
-                }
-            }
-        }
-
-        // Event listeners for search and filter
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOMContentLoaded event fired.');
-            const searchInput = document.getElementById('searchInput');
-            const categoryFilter = document.getElementById('categoryFilter');
-            
-            if (searchInput) {
-                console.log('Adding event listener to search input.');
-                searchInput.addEventListener('input', filterGallery);
-            } else {
-                console.warn('Search input not found.');
-            }
-            
-            if (categoryFilter) {
-                console.log('Adding event listener to category filter.');
-                categoryFilter.addEventListener('change', filterGallery);
-            } else {
-                console.warn('Category filter not found.');
-            }
-            
-            // Initialize file count
-            console.log('Initializing file count');
-            const totalFiles = document.querySelectorAll('#galleryContent .relative.group').length;
-            updateFileCount(totalFiles);
-            console.log('File count initialized');
-        });
+        // Make PHP variables available to external JavaScript
+        window.galleryTotalFiles = <?php echo $galleryResult['total_count'] ?? 0; ?>;
     </script>
+    
+    <!-- External JavaScript file for gallery functionality -->
+    <script src="js/gallery.js"></script>
 
     <?php if (isset($renameResult)): ?>
         <script>
