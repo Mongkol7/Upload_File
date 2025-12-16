@@ -29,12 +29,12 @@
                 </div>
 
                 <form action="index.php" method="post" enctype="multipart/form-data" class="space-y-4" id="uploadForm" onsubmit="showLoading('Uploading file...')">
-                    <div class="p-8 rounded-2xl border-2 border-dashed border-green-500/50 bg-green-500/10 hover:bg-green-500/20 transition-all duration-300">
+                    <div class="p-8 rounded-2xl border-2 border-dashed border-green-500/50 bg-green-500/10 hover:bg-green-500/20 transition-all duration-300 upload-area" id="uploadArea">
                         <label for="fileToUpload" class="flex flex-col items-center justify-center cursor-pointer">
                             <svg class="w-10 h-10 text-green-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                         </svg>
-                            <span class="text-gray-100 font-semibold">Choose File</span>
+                            <span class="text-gray-100 font-semibold">Choose File or Drag & Drop</span>
                             <span class="text-gray-400 text-xs mt-1">All file types supported</span>
                         </label>
                         <input type="file" name="fileToUpload" id="fileToUpload" class="hidden">
@@ -62,11 +62,24 @@
                         <div class="relative">
                             <input type="text" 
                                    id="searchInput" 
-                                   placeholder="Search files..." 
+                                   placeholder="Search files... (Ctrl+F)" 
                                    class="px-4 py-2 pl-10 rounded-lg bg-gray-700/50 text-gray-300 placeholder-gray-500 border border-green-500/20 focus:border-green-500/40 focus:outline-none transition-all duration-300 w-full sm:w-64">
                             <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                             </svg>
+                        </div>
+                        
+                        <!-- Sort Options -->
+                        <div class="relative">
+                            <select id="sortSelect" onchange="sortGallery(this.value)" class="appearance-none w-full px-4 py-2 rounded-lg bg-gray-700/50 text-gray-300 border border-green-500/20 focus:border-green-500/40 focus:outline-none transition-all duration-300 pr-8">
+                                <option value="date">Sort by Date</option>
+                                <option value="name">Sort by Name</option>
+                                <option value="size">Sort by Size</option>
+                                <option value="type">Sort by Type</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                            </div>
                         </div>
                         
                         <!-- Modern Category Filter -->
@@ -103,11 +116,21 @@
                 <!-- Gallery Skeleton Loading -->
                 <?php include __DIR__ . '/../components/gallery-skeleton.php' ?>
                 
+                <!-- Bulk Actions Bar (will be created by JS) -->
+                
                 <!-- Gallery Content -->
                 <div id="galleryContent" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" style="display: none;">
+                    <?php 
+                    // Store files array for JavaScript
+                    $filesJson = json_encode($galleryResult['files']);
+                    ?>
                     <?php foreach ($galleryResult['files'] as $file): ?>
                         <div class="relative group gallery-item-scroll" 
                              data-filename="<?php echo htmlspecialchars(strtolower($file['filename'])); ?>"
+                             data-public-id="<?php echo htmlspecialchars($file['public_id']); ?>"
+                             data-url="<?php echo htmlspecialchars($file['url']); ?>"
+                             data-size="<?php echo htmlspecialchars($file['size'] ?? 0); ?>"
+                             data-created-at="<?php echo htmlspecialchars($file['created_at']); ?>"
                              data-category="<?php
                                 $category = 'other'; // Default category
                                 if (isset($file['format']) && $file['format'] === 'pdf') {
@@ -121,7 +144,16 @@
                              ?>"
                              data-type="<?php echo htmlspecialchars($file['resource_type']); ?>"
                              data-format="<?php echo htmlspecialchars($file['format']); ?>">
-                            <div class="backdrop-blur-lg bg-gray-900/80 rounded-2xl overflow-hidden border border-green-500/20 hover:border-green-500/40 transition-all duration-300">
+                            <!-- Checkbox for bulk selection -->
+                            <div class="absolute top-2 left-2 z-10">
+                                <input type="checkbox" 
+                                       class="file-checkbox w-5 h-5 rounded border-green-500 text-green-500 focus:ring-green-500"
+                                       data-public-id="<?php echo htmlspecialchars($file['public_id']); ?>"
+                                       onclick="event.stopPropagation(); toggleFileSelection('<?php echo htmlspecialchars($file['public_id']); ?>')">
+                            </div>
+                            
+                            <div class="backdrop-blur-lg bg-gray-900/80 rounded-2xl overflow-hidden border border-green-500/20 hover:border-green-500/40 transition-all duration-300 cursor-pointer"
+                                 onclick="openLightbox('<?php echo htmlspecialchars($file['url']); ?>', '<?php echo htmlspecialchars($file['public_id']); ?>', window.galleryFiles || [])">
                                 <?php if (isset($file['format']) && $file['format'] === 'pdf'): ?>
                                     <div class="w-full h-48 flex items-center justify-center bg-gray-800">
                                         <div class="text-center">
@@ -172,30 +204,52 @@
                                             </div>
                                         </form>
                                     </div>
-                                    <p class="text-xs text-gray-400 mb-2">
+                                    <p class="text-xs text-gray-400 mb-1">
                                         <?php 
                                         $datetime = new DateTime($file['created_at']);
                                         $datetime->setTimezone(new DateTimeZone('Asia/Phnom_Penh'));
                                         echo $datetime->format('M d, Y - h:i A');
                                         ?>
                                     </p>
+                                    <p class="text-xs text-gray-500 mb-2">
+                                        <?php 
+                                        $size = $file['size'] ?? 0;
+                                        $units = ['B', 'KB', 'MB', 'GB'];
+                                        $unitIndex = 0;
+                                        while ($size >= 1024 && $unitIndex < count($units) - 1) {
+                                            $size /= 1024;
+                                            $unitIndex++;
+                                        }
+                                        echo round($size, 2) . ' ' . $units[$unitIndex];
+                                        ?>
+                                    </p>
                                     <div class="flex justify-between items-center">
-                                        <button onclick="copyToClipboard('<?php echo htmlspecialchars($file['url']); ?>')" 
-                                                class="text-green-500 hover:text-green-400 transition-colors">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                                            </svg>
-                                        </button>
-                                        <form action="index.php" method="post" class="inline">
-                                            <input type="hidden" name="public_id" value="<?php echo htmlspecialchars($file['public_id']); ?>">
-                                            <button type="button" 
-                                                onclick="confirmDelete('<?php echo htmlspecialchars($file['public_id']); ?>', '<?php echo htmlspecialchars($file['resource_type']); ?>')"
-                                                class="text-red-500 hover:text-red-400 transition-colors">
+                                        <div class="flex gap-2">
+                                            <button onclick="event.stopPropagation(); downloadFile('<?php echo htmlspecialchars($file['url']); ?>', '<?php echo htmlspecialchars($file['filename']); ?>')" 
+                                                    class="text-blue-500 hover:text-blue-400 transition-colors" title="Download">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                                                 </svg>
                                             </button>
-                                        </form>
+                                            <button onclick="event.stopPropagation(); openFileDetails(<?php echo htmlspecialchars(json_encode($file)); ?>)" 
+                                                    class="text-purple-500 hover:text-purple-400 transition-colors" title="Details">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                            </button>
+                                            <button onclick="event.stopPropagation(); copyToClipboard('<?php echo htmlspecialchars($file['url']); ?>')" 
+                                                    class="text-green-500 hover:text-green-400 transition-colors" title="Copy URL">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <button onclick="event.stopPropagation(); confirmDelete('<?php echo htmlspecialchars($file['public_id']); ?>', '<?php echo htmlspecialchars($file['resource_type']); ?>')"
+                                                class="text-red-500 hover:text-red-400 transition-colors" title="Delete">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -211,104 +265,45 @@
     <script>
         // Make PHP variables available to external JavaScript
         window.galleryTotalFiles = <?php echo $galleryResult['total_count'] ?? 0; ?>;
+        window.galleryFiles = <?php echo isset($galleryResult['files']) ? json_encode($galleryResult['files']) : '[]'; ?>;
+        
+        // Pass result data for alerts
+        <?php if (isset($renameResult)): ?>
+        window.renameResult = {
+            success: <?php echo $renameResult['success'] ? 'true' : 'false'; ?>,
+            message: <?php echo json_encode($renameResult['message'] ?? ''); ?>
+        };
+        <?php endif; ?>
+        
+        <?php if (isset($fileDeleteResult)): ?>
+        window.fileDeleteResult = {
+            success: <?php echo $fileDeleteResult['success'] ? 'true' : 'false'; ?>,
+            message: <?php echo json_encode($fileDeleteResult['message'] ?? ''); ?>
+        };
+        <?php endif; ?>
+        
+        <?php if (isset($uploadResult)): ?>
+        window.uploadResult = {
+            message: <?php echo json_encode($uploadResult['message'] ?? ''); ?>,
+            success: <?php echo isset($uploadResult['success']) && $uploadResult['success'] ? 'true' : 'false'; ?>,
+            url: <?php echo isset($uploadResult['url']) ? json_encode($uploadResult['url']) : 'null'; ?>
+        };
+        <?php endif; ?>
     </script>
     
-    <!-- External JavaScript file for gallery functionality -->
+    <!-- External JavaScript files -->
+    <script src="js/dragdrop.js"></script>
+    <script src="js/lightbox.js"></script>
+    <script src="js/bulk-operations.js"></script>
+    <script src="js/file-details.js"></script>
+    <script src="js/sort.js"></script>
+    <script src="js/keyboard-shortcuts.js"></script>
+    <script src="js/download.js"></script>
+    <script src="js/share.js"></script>
+    <script src="js/file-preview.js"></script>
+    <script src="js/upload-progress.js"></script>
     <script src="js/gallery.js"></script>
-
-    <?php if (isset($renameResult)): ?>
-        <script>
-            <?php if ($renameResult['success']): ?>
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Renamed!',
-                    text: '<?php echo htmlspecialchars($renameResult['message']); ?>',
-                    background: '#1f2937',
-                    color: '#f3f4f6',
-                    confirmButtonColor: '#22c55e',
-                    confirmButtonText: 'OK',
-                    timer: 2000,
-                    timerProgressBar: true
-                });
-            <?php else: ?>
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Rename Failed!',
-                    text: '<?php echo htmlspecialchars($renameResult['message']); ?>',
-                    background: '#1f2937',
-                    color: '#f3f4f6',
-                    confirmButtonColor: '#ef4444',
-                    confirmButtonText: 'OK'
-                });
-            <?php endif; ?>
-        </script>
-    <?php endif; ?>
-
-    <?php if (isset($fileDeleteResult)): ?>
-        <script>
-            <?php if ($fileDeleteResult['success']): ?>
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Deleted!',
-                    text: '<?php echo htmlspecialchars($fileDeleteResult['message']); ?>',
-                    background: '#1f2937',
-                    color: '#f3f4f6',
-                    confirmButtonColor: '#22c55e',
-                    confirmButtonText: 'OK',
-                    timer: 2000,
-                    timerProgressBar: true
-                });
-            <?php else: ?>
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Delete Failed!',
-                    text: '<?php echo htmlspecialchars($fileDeleteResult['message']); ?>',
-                    background: '#1f2937',
-                    color: '#f3f4f6',
-                    confirmButtonColor: '#ef4444',
-                    confirmButtonText: 'OK'
-                });
-            <?php endif; ?>
-        </script>
-    <?php endif; ?>
-
-    <?php if (isset($uploadResult['message']) && $uploadResult['message'] === 'success'): ?>
-        <script>
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: 'File uploaded successfully to Cloudinary',
-                background: '#1f2937',
-                color: '#f3f4f6',
-                confirmButtonColor: '#22c55e',
-                confirmButtonText: 'Great!'
-            });
-        </script>
-    <?php elseif (isset($uploadResult['message']) && $uploadResult['message'] === 'error'): ?>
-        <script>
-            Swal.fire({
-                icon: 'error',
-                title: 'Upload Failed!',
-                text: 'Please try again',
-                background: '#1f2937',
-                color: '#f3f4f6',
-                confirmButtonColor: '#ef4444',
-                confirmButtonText: 'OK'
-            });
-        </script>
-    <?php elseif (isset($uploadResult['message']) && $uploadResult['message'] === 'warning'): ?>
-        <script>
-            Swal.fire({
-                icon: 'warning',
-                title: 'Warning',
-                text: 'Upload succeeded but no URL returned',
-                background: '#1f2937',
-                color: '#f3f4f6',
-                confirmButtonColor: '#f59e0b',
-                confirmButtonText: 'OK'
-            });
-        </script>
-    <?php endif; ?>
+    <script src="js/alerts.js"></script>
     <?php if ($uploadResult['success'] && $uploadResult['url']) { ?>
         <div id="successCard" class="fixed bottom-6 right-6 max-w-xs backdrop-blur-2xl bg-gray-800/70 rounded-2xl p-4 border border-green-500/40 shadow-xl shadow-green-500/20">
             <button onclick="document.getElementById('successCard').style.display='none'" class="absolute top-2 right-2 p-2 hover:bg-gray-700/50 rounded-lg transition-all">
@@ -352,8 +347,6 @@
             <?php endif; ?>
         </div>
     <?php } ?>
-
-    </script>
 
 </body>
 </html>

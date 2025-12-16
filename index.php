@@ -9,7 +9,44 @@ $renameResult = [];
 // Get files from Cloudinary (no limit)
 $galleryResult = $uploadHandler->getFiles();
 
-// Handle delete request
+// Handle bulk delete request
+if (isset($_POST['bulk_delete']) && !empty($_POST['selected_files'])) {
+    $selectedFiles = json_decode($_POST['selected_files'], true);
+    $bulkDeleteResult = ['success' => true, 'deleted' => 0, 'failed' => 0];
+    
+    if (is_array($selectedFiles)) {
+        foreach ($selectedFiles as $fileData) {
+            // File data might be just public_id or an object
+            if (is_array($fileData)) {
+                $publicId = $fileData['public_id'] ?? $fileData;
+                $resourceType = $fileData['resource_type'] ?? 'image';
+            } else {
+                // Try to get resource type from gallery files
+                $publicId = $fileData;
+                $resourceType = 'image'; // Default, will try to detect
+            }
+            
+            $result = $uploadHandler->deleteFile($publicId, $resourceType);
+            if ($result['success']) {
+                $bulkDeleteResult['deleted']++;
+            } else {
+                $bulkDeleteResult['failed']++;
+            }
+        }
+        
+        if ($bulkDeleteResult['deleted'] > 0) {
+            // Refresh gallery after successful deletion
+            $galleryResult = $uploadHandler->getFiles();
+        }
+        
+        $fileDeleteResult = [
+            'success' => $bulkDeleteResult['failed'] === 0,
+            'message' => "Deleted {$bulkDeleteResult['deleted']} file(s)" . ($bulkDeleteResult['failed'] > 0 ? ", {$bulkDeleteResult['failed']} failed" : "")
+        ];
+    }
+}
+
+// Handle single delete request
 if (isset($_POST['delete_file']) && !empty($_POST['public_id']) && !empty($_POST['resource_type'])) {
     $fileDeleteResult = $uploadHandler->deleteFile($_POST['public_id'], $_POST['resource_type']);
     if ($fileDeleteResult['success']) {
