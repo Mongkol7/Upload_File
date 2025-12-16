@@ -153,55 +153,56 @@
                             </div>
                             
                             <div class="backdrop-blur-lg bg-gray-900/80 rounded-2xl overflow-hidden border border-green-500/20 hover:border-green-500/40 transition-all duration-300">
-                                <div class="file-preview-area cursor-pointer" 
-                                     onclick="openLightbox('<?php echo htmlspecialchars($file['url']); ?>', '<?php echo htmlspecialchars($file['public_id']); ?>', window.galleryFiles || [])">
-                                    <?php if (isset($file['format']) && $file['format'] === 'pdf'): ?>
-                                        <div class="w-full h-48 flex items-center justify-center bg-gray-800">
-                                            <div class="text-center">
-                                                <svg class="w-16 h-16 text-red-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                                </svg>
-                                                <p class="text-xs text-gray-400">PDF</p>
-                                            </div>
-                                        </div>
-                                    <?php elseif ($file['resource_type'] === 'image'): ?>
-                                        <img src="<?php echo htmlspecialchars($file['url']); ?>" 
-                                             alt="Uploaded File" 
-                                             class="w-full h-48 object-cover">
-                                    <?php elseif ($file['resource_type'] === 'video'): ?>
-                                        <video src="<?php echo htmlspecialchars($file['url']); ?>" 
-                                               class="w-full h-48 object-cover" 
-                                               controls></video>
-                                    <?php else: ?>
-                                        <div class="w-full h-48 flex items-center justify-center bg-gray-800">
-                                            <div class="text-center">
-                                                <svg class="w-16 h-16 text-green-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                                </svg>
-                                                <p class="text-xs text-gray-400"><?php echo htmlspecialchars(strtoupper($file['format'])); ?></p>
-                                            </div>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="p-4 file-details-section" onclick="event.stopPropagation()">
+                                 <!-- Preview area - clickable for images/videos -->
+                                 <div class="cursor-pointer" onclick="openFullscreenPreview('<?php echo htmlspecialchars($file['url']); ?>', '<?php echo htmlspecialchars($file['resource_type']); ?>', '<?php echo htmlspecialchars($file['filename']); ?>')">
+                                     <?php if (isset($file['format']) && $file['format'] === 'pdf'): ?>
+                                         <div class="w-full h-48 flex items-center justify-center bg-gray-800">
+                                             <div class="text-center">
+                                                 <svg class="w-16 h-16 text-red-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                 </svg>
+                                                 <p class="text-xs text-gray-400">PDF</p>
+                                             </div>
+                                         </div>
+                                     <?php elseif ($file['resource_type'] === 'image'): ?>
+                                         <img src="<?php echo htmlspecialchars($file['url']); ?>" 
+                                              alt="Uploaded File" 
+                                              class="w-full h-48 object-cover">
+                                     <?php elseif ($file['resource_type'] === 'video'): ?>
+                                         <video src="<?php echo htmlspecialchars($file['url']); ?>" 
+                                                class="w-full h-48 object-cover" 
+                                                controls></video>
+                                     <?php else: ?>
+                                         <div class="w-full h-48 flex items-center justify-center bg-gray-800">
+                                             <div class="text-center">
+                                                 <svg class="w-16 h-16 text-green-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                 </svg>
+                                                 <p class="text-xs text-gray-400"><?php echo htmlspecialchars(strtoupper($file['format'])); ?></p>
+                                             </div>
+                                         </div>
+                                     <?php endif; ?>
+                                 </div>
+                                 <!-- Detail section - not clickable for preview -->
+                                 <div class="p-4" onclick="event.stopPropagation()">
                                     <div id="filename-view-<?php echo htmlspecialchars($file['public_id']); ?>">
                                         <div class="flex items-center justify-between">
                                             <p class="gallery-item-filename text-sm text-gray-300 font-medium mb-1 truncate" title="<?php echo htmlspecialchars($file['filename']); ?>">
                                                 <?php echo htmlspecialchars($file['filename']); ?>
                                             </p>
-                                            <button onclick="event.stopPropagation(); toggleEditMode('<?php echo htmlspecialchars($file['public_id']); ?>', true)" class="text-gray-400 hover:text-white">
+                                            <button onclick="toggleEditMode('<?php echo htmlspecialchars($file['public_id']); ?>', true)" class="text-gray-400 hover:text-white">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z"></path></svg>
                                             </button>
                                         </div>
                                     </div>
                                     <div id="filename-edit-<?php echo htmlspecialchars($file['public_id']); ?>" style="display: none;">
-                                        <form action="index.php" method="post" onsubmit="showLoading('Renaming file...')" onclick="event.stopPropagation()">
+                                        <form action="index.php" method="post" onsubmit="showLoading('Renaming file...')">
                                             <input type="hidden" name="rename_file" value="1">
                                             <input type="hidden" name="public_id" value="<?php echo htmlspecialchars($file['public_id']); ?>">
                                             <input type="hidden" name="resource_type" value="<?php echo htmlspecialchars($file['resource_type']); ?>">
                                             <input type="text" name="new_filename" value="<?php echo htmlspecialchars($file['filename']); ?>" class="w-full px-2 py-1 rounded bg-gray-700 text-white border border-green-500/50">
                                             <div class="flex justify-end gap-2 mt-2">
-                                                <button type="button" onclick="event.stopPropagation(); toggleEditMode('<?php echo htmlspecialchars($file['public_id']); ?>', false)" class="text-xs text-gray-400 hover:text-white">Cancel</button>
+                                                <button type="button" onclick="toggleEditMode('<?php echo htmlspecialchars($file['public_id']); ?>', false)" class="text-xs text-gray-400 hover:text-white">Cancel</button>
                                                 <button type="submit" class="text-xs text-green-500 hover:text-green-400">Save</button>
                                             </div>
                                         </form>
@@ -295,14 +296,13 @@
     
     <!-- External JavaScript files -->
     <script src="js/dragdrop.js"></script>
-    <script src="js/lightbox.js"></script>
+    <script src="js/fullscreen-preview.js"></script>
     <script src="js/bulk-operations.js"></script>
     <script src="js/file-details.js"></script>
     <script src="js/sort.js"></script>
     <script src="js/keyboard-shortcuts.js"></script>
     <script src="js/download.js"></script>
     <script src="js/share.js"></script>
-    <script src="js/file-preview.js"></script>
     <script src="js/upload-progress.js"></script>
     <script src="js/gallery.js"></script>
     <script src="js/alerts.js"></script>
