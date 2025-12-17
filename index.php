@@ -4,7 +4,8 @@ require_once __DIR__ . '/src/UploadHandler.php';
 
 $uploadHandler = new UploadHandler($cloudinary, $cloudinary_folder);
 $uploadResult = $uploadHandler->handleUpload();
-$renameResult = [];
+$renameResult = null;
+$fileDeleteResult = null;
 
 // Get files from Cloudinary (no limit)
 $galleryResult = $uploadHandler->getFiles();

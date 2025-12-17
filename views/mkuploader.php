@@ -271,14 +271,14 @@
         window.galleryFiles = <?php echo isset($galleryResult['files']) ? json_encode($galleryResult['files']) : '[]'; ?>;
         
         // Pass result data for alerts
-        <?php if (isset($renameResult)): ?>
+        <?php if (!empty($renameResult) && isset($renameResult['success'])): ?>
         window.renameResult = {
             success: <?php echo $renameResult['success'] ? 'true' : 'false'; ?>,
             message: <?php echo json_encode($renameResult['message'] ?? ''); ?>
         };
         <?php endif; ?>
         
-        <?php if (isset($fileDeleteResult)): ?>
+        <?php if (!empty($fileDeleteResult) && isset($fileDeleteResult['success'])): ?>
         window.fileDeleteResult = {
             success: <?php echo $fileDeleteResult['success'] ? 'true' : 'false'; ?>,
             message: <?php echo json_encode($fileDeleteResult['message'] ?? ''); ?>
