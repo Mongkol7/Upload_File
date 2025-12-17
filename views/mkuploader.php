@@ -34,7 +34,7 @@
                             <svg class="w-10 h-10 text-green-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                         </svg>
-                            <span class="text-gray-100 font-semibold">Choose File or Drag & Drop</span>
+                            <span class="text-gray-100 font-semibold">Choose File</span>
                             <span class="text-gray-400 text-xs mt-1">All file types supported</span>
                         </label>
                         <input type="file" name="fileToUpload" id="fileToUpload" class="hidden">
@@ -295,7 +295,6 @@
     </script>
     
     <!-- External JavaScript files -->
-    <script src="js/dragdrop.js"></script>
     <script src="js/fullscreen-preview.js"></script>
     <script src="js/bulk-operations.js"></script>
     <script src="js/file-details.js"></script>
