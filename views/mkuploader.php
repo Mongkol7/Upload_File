@@ -349,5 +349,9 @@
         </div>
     <?php } ?>
 
+    <footer class="text-center text-gray-500 text-xs py-6">
+        Developed by Thoeung Sereymongkol
+    </footer>
+
 </body>
 </html>
