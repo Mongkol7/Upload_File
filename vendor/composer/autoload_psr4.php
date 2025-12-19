@@ -13,6 +13,7 @@ return array(
     'Psr\\Http\\Message\\' => array($vendorDir . '/psr/http-factory/src', $vendorDir . '/psr/http-message/src'),
     'Psr\\Http\\Client\\' => array($vendorDir . '/psr/http-client/src'),
     'PhpOption\\' => array($vendorDir . '/phpoption/phpoption/src/PhpOption'),
+    'PHPMailer\\PHPMailer\\' => array($vendorDir . '/phpmailer/phpmailer/src'),
     'Myproject\\Website\\Model\\' => array($baseDir . '/Model'),
     'Myproject\\Website\\Controller\\' => array($baseDir . '/controller'),
     'Monolog\\' => array($vendorDir . '/monolog/monolog/src/Monolog'),

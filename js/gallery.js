@@ -247,10 +247,14 @@ window.toggleEditMode = function (publicId, showEdit) {
 
 /**
  * Filter gallery items based on search term and category
+ * This is the normal filename-based search
  */
 function filterGallery() {
-  const searchTerm = document.getElementById('searchInput').value;
-  const category = document.getElementById('categoryFilter').value;
+  const searchInput = document.getElementById('searchInput');
+  if (!searchInput) return;
+  
+  const searchTerm = searchInput.value.trim();
+  const category = document.getElementById('categoryFilter')?.value || 'all';
   const fileItems = document.querySelectorAll(
     '#galleryContent .relative.group'
   );
@@ -258,13 +262,12 @@ function filterGallery() {
   let visibleCount = 0;
 
   fileItems.forEach((item) => {
-    const filename = item.dataset.filename;
+    const filename = item.dataset.filename || '';
     const fileCategory = item.dataset.category;
     const filenameElement = item.querySelector('.gallery-item-filename');
 
-    const matchesSearch =
-      searchTerm === '' ||
-      filename.toLowerCase().includes(searchTerm.toLowerCase());
+    // If search is empty, show all files (respecting category filter)
+    const matchesSearch = searchTerm === '' || filename.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = category === 'all' || fileCategory === category;
 
     if (matchesSearch && matchesCategory) {
@@ -274,33 +277,69 @@ function filterGallery() {
       item.classList.remove('animate-in');
 
       if (searchTerm !== '') {
-        const regex = new RegExp(searchTerm, 'gi');
+        // Highlight search term in filename
+        const regex = new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
         const newHtml = filename.replace(
           regex,
           '<span class="bg-green-500 text-white">$&</span>'
         );
-        filenameElement.innerHTML = newHtml;
+        if (filenameElement) {
+          filenameElement.innerHTML = newHtml;
+        }
       } else {
-        filenameElement.innerHTML = filename; // Reset when hidden
+        // Reset to original filename when search is cleared
+        if (filenameElement) {
+          filenameElement.textContent = filename;
+        }
       }
     } else {
       item.style.display = 'none';
-      item.classList.remove('animate-in'); // Reset animation when hidden
-      filenameElement.innerHTML = filename; // Reset when hidden
+      item.classList.remove('animate-in');
+      // Reset filename when hidden
+      if (filenameElement) {
+        filenameElement.textContent = filename;
+      }
     }
   });
 
-  updateFileCount(visibleCount);
+  // Only update count if AI is not searching (to avoid overriding loading animation)
+  if (typeof window.isAISearching === 'undefined' || !window.isAISearching) {
+    updateFileCount(visibleCount, false);
+  }
+  
+  // Re-initialize animations
+  setTimeout(() => {
+    reinitScrollAnimations();
+  }, 50);
 }
 
 /**
  * Update file count display
  * @param {number} count - Number of visible files
+ * @param {boolean} isAISearching - Whether AI search is in progress
  */
-function updateFileCount(count) {
+function updateFileCount(count, isAISearching = false) {
   const countElement = document.getElementById('gallery-file-count');
   const totalFiles = window.galleryTotalFiles || 0;
   if (countElement) {
+    // Show loading animation if AI is searching
+    if (isAISearching) {
+      countElement.innerHTML = `
+        <div style="text-align: center; padding: 1rem 0;">
+          <div style="color: #22c55e; margin-bottom: 1.5rem; font-size: 1rem; font-weight: 500;">AI is analyzing images...</div>
+          <!-- From Uiverse.io by mobinkakei -->
+          <div class="loader-3" style="margin: 0 auto;">
+            <div class="circle"></div>
+            <div class="circle"></div>
+            <div class="circle"></div>
+            <div class="circle"></div>
+            <div class="circle"></div>
+          </div>
+        </div>
+      `;
+      return;
+    }
+    
     if (totalFiles === 0) {
       countElement.textContent = 'No files found.';
     } else if (count === 0) {
@@ -405,15 +444,10 @@ document.addEventListener('DOMContentLoaded', function () {
   // Hide skeleton on page load (files are already loaded server-side)
   hideGallerySkeleton();
 
+  // Note: Search input event listener is now handled by ai-search.js
+  // This allows for AI-powered semantic search
   if (searchInput) {
-    console.log('Adding event listener to search input.');
-    searchInput.addEventListener('input', function () {
-      filterGallery();
-      // Re-initialize animations after filtering
-      setTimeout(() => {
-        reinitScrollAnimations();
-      }, 50);
-    });
+    console.log('Search input found. AI search will handle it.');
   } else {
     console.warn('Search input not found.');
   }

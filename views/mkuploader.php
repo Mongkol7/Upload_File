@@ -62,8 +62,8 @@
                         <div class="relative">
                             <input type="text" 
                                    id="searchInput" 
-                                   placeholder="Search files... (Ctrl+F)" 
-                                   class="px-4 py-2 pl-10 rounded-lg bg-gray-700/50 text-gray-300 placeholder-gray-500 border border-green-500/20 focus:border-green-500/40 focus:outline-none transition-all duration-300 w-full sm:w-64">
+                                   placeholder="Search files by name or describe content... (Ctrl+F)" 
+                                   class="px-4 py-2 pl-10 pr-4 rounded-lg bg-gray-700/50 text-gray-300 placeholder-gray-500 border border-green-500/20 focus:border-green-500/40 focus:outline-none transition-all duration-300 w-full sm:w-64">
                             <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                             </svg>
@@ -108,9 +108,9 @@
                     </div>
                 </div>
                 <?php if ($galleryResult['total_count'] > 0): ?>
-                    <p id="gallery-file-count" class="text-center text-gray-400 mt-3 mb-8">
+                    <div id="gallery-file-count" class="text-center text-gray-400 mt-3 mb-8">
                         Showing <?php echo $galleryResult['total_count']; ?> file(s)
-                    </p>
+                    </div>
                 <?php endif; ?>
                 
                 <!-- Gallery Skeleton Loading -->
@@ -304,6 +304,7 @@
     <script src="js/share.js"></script>
     <script src="js/upload-progress.js"></script>
     <script src="js/gallery.js"></script>
+    <script src="js/ai-search.js"></script>
     <script src="js/alerts.js"></script>
     <?php if ($uploadResult['success'] && $uploadResult['url']) { ?>
         <div id="successCard" class="fixed bottom-6 right-6 max-w-xs backdrop-blur-2xl bg-gray-800/70 rounded-2xl p-4 border border-green-500/40 shadow-xl shadow-green-500/20">
@@ -348,6 +349,9 @@
             <?php endif; ?>
         </div>
     <?php } ?>
+
+    <!-- Feedback Form Component -->
+    <?php include __DIR__ . '/../components/feedback-form.php' ?>
 
     <footer class="text-center text-gray-500 text-xs py-6">
         Developed by Thoeung Sereymongkol

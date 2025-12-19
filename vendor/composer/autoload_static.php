@@ -28,6 +28,7 @@ class ComposerStaticInitcd2516e6c1bb11ebd29d38a4e4ab6754
             'Psr\\Http\\Message\\' => 17,
             'Psr\\Http\\Client\\' => 16,
             'PhpOption\\' => 10,
+            'PHPMailer\\PHPMailer\\' => 20,
         ),
         'M' =>
         array (
@@ -77,6 +78,10 @@ class ComposerStaticInitcd2516e6c1bb11ebd29d38a4e4ab6754
         'PhpOption\\' =>
         array (
             0 => __DIR__ . '/..' . '/phpoption/phpoption/src/PhpOption',
+        ),
+        'PHPMailer\\PHPMailer\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/phpmailer/phpmailer/src',
         ),
         'Myproject\\Website\\Model\\' =>
         array (
